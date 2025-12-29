@@ -35,7 +35,15 @@ struct AppState {
 }
 
 impl AppState {
+    #[cfg(test)]
     fn new() -> Self {
+        Self {
+            todos: Mutex::new(Vec::new()),
+            work_logs: Mutex::new(Vec::new()),
+        }
+    }
+
+    fn with_demo_data() -> Self {
         Self {
             todos: Mutex::new(vec![
                 TodoItem {
@@ -187,7 +195,7 @@ mod tests {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState::new())
+        .manage(AppState::with_demo_data())
         .invoke_handler(tauri::generate_handler![
             get_news,
             get_todos,
