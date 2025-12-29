@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use tauri::State;
 use std::sync::Mutex;
+use tauri::State;
 
 // --- Data Structures ---
 
@@ -38,19 +38,34 @@ impl AppState {
     fn new() -> Self {
         Self {
             todos: Mutex::new(vec![
-                TodoItem { id: 1, text: "Install Android Studio".to_string(), completed: false },
-                TodoItem { id: 2, text: "Learn Rust".to_string(), completed: true },
+                TodoItem {
+                    id: 1,
+                    text: "Install Android Studio".to_string(),
+                    completed: false,
+                },
+                TodoItem {
+                    id: 2,
+                    text: "Learn Rust".to_string(),
+                    completed: true,
+                },
             ]),
-            work_logs: Mutex::new(vec![
-                WorkLog { id: 1, project: "Personal App".to_string(), hours: 2.5, date: "2025-12-29".to_string() }
-            ]),
+            work_logs: Mutex::new(vec![WorkLog {
+                id: 1,
+                project: "Personal App".to_string(),
+                hours: 2.5,
+                date: "2025-12-29".to_string(),
+            }]),
         }
     }
 
     fn add_todo(&self, text: String) -> Vec<TodoItem> {
         let mut todos = self.todos.lock().unwrap();
         let id = todos.len() as u32 + 1;
-        todos.push(TodoItem { id, text, completed: false });
+        todos.push(TodoItem {
+            id,
+            text,
+            completed: false,
+        });
         todos.clone()
     }
 
@@ -61,12 +76,17 @@ impl AppState {
         }
         todos.clone()
     }
-    
+
     fn add_work_log(&self, project: String, hours: f32) -> Vec<WorkLog> {
         let mut logs = self.work_logs.lock().unwrap();
         let id = logs.len() as u32 + 1;
-        let date = "2025-12-29".to_string(); 
-        logs.push(WorkLog { id, project, hours, date });
+        let date = "2025-12-29".to_string();
+        logs.push(WorkLog {
+            id,
+            project,
+            hours,
+            date,
+        });
         logs.clone()
     }
 }
@@ -143,11 +163,11 @@ mod tests {
     fn test_toggle_todo() {
         let state = AppState::new();
         state.add_todo("Learn Rust".to_string());
-        
+
         // Toggle logic
         let todos = state.toggle_todo(1);
         assert_eq!(todos[0].completed, true);
-        
+
         // Toggle back
         let todos = state.toggle_todo(1);
         assert_eq!(todos[0].completed, false);
@@ -169,9 +189,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
-            get_news, 
-            get_todos, 
-            add_todo, 
+            get_news,
+            get_todos,
+            add_todo,
             toggle_todo,
             get_work_logs,
             add_work_log
