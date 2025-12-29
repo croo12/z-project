@@ -1,0 +1,12 @@
+export PATH="$PATH:/c/Users/jimmy/.cargo/bin"
+# Run Cargo Format
+cargo fmt -- --check
+
+# Run Cargo Clippy (Lint)
+cargo clippy -- -D warnings
+
+# Run Frontend Lint
+npm run lint
+
+# Run Frontend Format Check
+npm run format:check
