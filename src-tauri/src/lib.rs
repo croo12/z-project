@@ -136,7 +136,10 @@ impl AppState {
 
     fn save_articles(&self, app_handle: &tauri::AppHandle) {
         let articles = self.articles.lock().unwrap();
-        let app_dir = app_handle.path().app_data_dir().unwrap_or(PathBuf::from("."));
+        let app_dir = app_handle
+            .path()
+            .app_data_dir()
+            .unwrap_or(PathBuf::from("."));
         if !app_dir.exists() {
             let _ = fs::create_dir_all(&app_dir);
         }
@@ -145,7 +148,10 @@ impl AppState {
     }
 
     fn load_articles(&self, app_handle: &tauri::AppHandle) {
-        let app_dir = app_handle.path().app_data_dir().unwrap_or(PathBuf::from("."));
+        let app_dir = app_handle
+            .path()
+            .app_data_dir()
+            .unwrap_or(PathBuf::from("."));
         let path = app_dir.join("articles.json");
         if path.exists() {
             if let Ok(content) = fs::read_to_string(path) {
@@ -213,39 +219,62 @@ fn add_work_log(project: String, hours: f32, state: State<AppState>) -> Vec<Work
 // --- Article Commands ---
 
 async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>, String> {
-    let content = reqwest::get(url).await.map_err(|e| e.to_string())?
-        .bytes().await.map_err(|e| e.to_string())?;
+    let content = reqwest::get(url)
+        .await
+        .map_err(|e| e.to_string())?
+        .bytes()
+        .await
+        .map_err(|e| e.to_string())?;
     let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
-    
-    let articles = channel.items().into_iter().map(|item| {
-        Article {
-            id: item.guid().map(|g| g.value()).or(item.link()).unwrap_or("").to_string(),
+
+    let articles = channel
+        .items()
+        .into_iter()
+        .map(|item| Article {
+            id: item
+                .guid()
+                .map(|g| g.value())
+                .or(item.link())
+                .unwrap_or("")
+                .to_string(),
             title: item.title().unwrap_or("No Title").to_string(),
             summary: item.description().unwrap_or("").chars().take(200).collect(),
             url: item.link().unwrap_or("").to_string(),
             category: category.clone(),
             published_at: item.pub_date().unwrap_or("").to_string(),
             feedback: None,
-        }
-    }).collect();
+        })
+        .collect();
     Ok(articles)
 }
 
 #[tauri::command]
-async fn fetch_articles(state: State<'_, AppState>, app: tauri::AppHandle) -> Result<usize, String> {
+async fn fetch_articles(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<usize, String> {
     let feeds = vec![
         ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
-        ("https://this-week-in-rust.org/rss.xml", ArticleCategory::Rust),
-        ("https://feeds.feedburner.com/blogspot/hsDu", ArticleCategory::Android),
+        (
+            "https://this-week-in-rust.org/rss.xml",
+            ArticleCategory::Rust,
+        ),
+        (
+            "https://feeds.feedburner.com/blogspot/hsDu",
+            ArticleCategory::Android,
+        ),
         ("https://androidweekly.net/rss", ArticleCategory::Android),
         ("https://tauri.app/blog/rss.xml", ArticleCategory::Tauri),
-        ("https://devblogs.microsoft.com/typescript/feed/", ArticleCategory::TypeScript),
+        (
+            "https://devblogs.microsoft.com/typescript/feed/",
+            ArticleCategory::TypeScript,
+        ),
         ("https://react.dev/feed.xml", ArticleCategory::React),
         ("https://overreacted.io/rss.xml", ArticleCategory::React),
     ];
 
     let mut new_count = 0;
-    
+
     for (url, category) in feeds {
         if let Ok(fetched) = fetch_feed(url, category).await {
             let mut articles = state.articles.lock().unwrap();
@@ -257,30 +286,41 @@ async fn fetch_articles(state: State<'_, AppState>, app: tauri::AppHandle) -> Re
             }
         }
     }
-    
+
     state.save_articles(&app);
     Ok(new_count)
 }
 
-async fn recommend_with_gemini(candidates: Vec<Article>, feedback_history: Vec<Feedback>, api_key: String) -> Vec<Article> {
+async fn recommend_with_gemini(
+    candidates: Vec<Article>,
+    feedback_history: Vec<Feedback>,
+    api_key: String,
+) -> Vec<Article> {
     // 1. Construct Prompt
     let mut prompt = String::from("You are a tech article recommender. Select the best 4 articles from the CANDIDATES list based on the USER_FEEDBACK history.\n\n");
-    
+
     prompt.push_str("USER_FEEDBACK:\n");
-    for f in feedback_history.iter().take(20) { // Limit history context
-        prompt.push_str(&format!("- Helpful: {}, Reason: {}\n", f.is_helpful, f.reason));
+    for f in feedback_history.iter().take(20) {
+        // Limit history context
+        prompt.push_str(&format!(
+            "- Helpful: {}, Reason: {}\n",
+            f.is_helpful, f.reason
+        ));
     }
 
     prompt.push_str("\nCANDIDATES (JSON):\n");
     // Simplify candidates to save tokens
-    let simple_candidates: Vec<_> = candidates.iter().map(|a| {
-        serde_json::json!({
-            "id": a.id,
-            "title": a.title,
-            "category": format!("{:?}", a.category),
-            "summary": a.summary.chars().take(100).collect::<String>()
+    let simple_candidates: Vec<_> = candidates
+        .iter()
+        .map(|a| {
+            serde_json::json!({
+                "id": a.id,
+                "title": a.title,
+                "category": format!("{:?}", a.category),
+                "summary": a.summary.chars().take(100).collect::<String>()
+            })
         })
-    }).collect();
+        .collect();
     prompt.push_str(&serde_json::to_string(&simple_candidates).unwrap_or_default());
 
     prompt.push_str("\n\nRespond ONLY with a JSON array of the IDs of the 4 selected articles. Example: [\"id1\", \"id2\"]");
@@ -301,14 +341,21 @@ async fn recommend_with_gemini(candidates: Vec<Article>, feedback_history: Vec<F
         if let Ok(json) = response.json::<serde_json::Value>().await {
             if let Some(text) = json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
                 // Clean markdown code blocks if present
-                let clean_text = text.replace("```json", "").replace("```", "").trim().to_string();
+                let clean_text = text
+                    .replace("```json", "")
+                    .replace("```", "")
+                    .trim()
+                    .to_string();
                 if let Ok(selected_ids) = serde_json::from_str::<Vec<String>>(&clean_text) {
-                     return candidates.into_iter().filter(|a| selected_ids.contains(&a.id)).collect();
+                    return candidates
+                        .into_iter()
+                        .filter(|a| selected_ids.contains(&a.id))
+                        .collect();
                 }
             }
         }
     }
-    
+
     // Fallback: Return top 4 from candidates if AI fails
     candidates.into_iter().take(4).collect()
 }
@@ -316,14 +363,14 @@ async fn recommend_with_gemini(candidates: Vec<Article>, feedback_history: Vec<F
 #[tauri::command]
 async fn get_recommended_articles(state: State<'_, AppState>) -> Result<Vec<Article>, String> {
     let articles = state.articles.lock().unwrap().clone();
-    
+
     // 0. Filter out duplicate IDs or bad data? (Assumed clean from fetch)
-    
-    // 1. Separate viewed/feedbacked vs new? 
-    // For now, let's treat all available articles as candidates, 
+
+    // 1. Separate viewed/feedbacked vs new?
+    // For now, let's treat all available articles as candidates,
     // but maybe prioritize ones without feedback for the "Rule-based" part if we want "Unread".
     // Or just strictly Date based.
-    
+
     // Sort by Date Descending
     let mut sorted_articles = articles.clone();
     sorted_articles.sort_by(|a, b| b.published_at.cmp(&a.published_at)); // Dictionary sort of date string works for ISO/RSS standard usually
@@ -335,13 +382,12 @@ async fn get_recommended_articles(state: State<'_, AppState>) -> Result<Vec<Arti
     // 3. AI-based: Next 4 from remaining
     // Get API Key from Env or Settings (Simple Env for now)
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
-    
+
     let ai_picks = if !api_key.is_empty() && !remaining.is_empty() {
         // Collect feedback history
-        let feedback_history: Vec<Feedback> = articles.iter()
-            .filter_map(|a| a.feedback.clone())
-            .collect();
-            
+        let feedback_history: Vec<Feedback> =
+            articles.iter().filter_map(|a| a.feedback.clone()).collect();
+
         recommend_with_gemini(remaining, feedback_history, api_key).await
     } else {
         // Fallback: Just take next 4
@@ -351,12 +397,18 @@ async fn get_recommended_articles(state: State<'_, AppState>) -> Result<Vec<Arti
     // 4. Combine
     let mut result = top_3;
     result.extend(ai_picks);
-    
+
     Ok(result)
 }
 
 #[tauri::command]
-fn submit_feedback(id: String, helpful: bool, reason: String, state: State<AppState>, app: tauri::AppHandle) -> Result<(), String> {
+fn submit_feedback(
+    id: String,
+    helpful: bool,
+    reason: String,
+    state: State<AppState>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
     let mut articles = state.articles.lock().unwrap();
     if let Some(article) = articles.iter_mut().find(|a| a.id == id) {
         article.feedback = Some(Feedback {
@@ -365,9 +417,9 @@ fn submit_feedback(id: String, helpful: bool, reason: String, state: State<AppSt
             created_at: chrono::Local::now().to_rfc3339(),
         });
         // Save immediately
-        drop(articles); // release lock before save? save takes lock. 
-        // state.save_articles takes &self, and locks. 
-        // So I must drop lock here.
+        drop(articles); // release lock before save? save takes lock.
+                        // state.save_articles takes &self, and locks.
+                        // So I must drop lock here.
         state.save_articles(&app);
         Ok(())
     } else {

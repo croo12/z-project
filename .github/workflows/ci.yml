@@ -61,8 +61,14 @@ jobs:
         node-version: 20
         cache: 'npm'
     - name: Install Dependencies
+      working-directory: src
       run: npm install
     - name: Lint Frontend
+      working-directory: src
       run: npm run lint
     - name: Build Frontend
+      working-directory: src
       run: npm run build
+    - name: Run Tests
+      working-directory: src
+      run: npm run test
