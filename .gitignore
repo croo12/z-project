@@ -18,4 +18,5 @@ src-tauri/gen/
 # Env
 .env
 .env.*
-! .env.example
+!.env.example
+!src-tauri/.env.example

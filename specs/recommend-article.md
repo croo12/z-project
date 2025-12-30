@@ -8,20 +8,24 @@
 ### 기능적 요구사항 (Functional Requirements)
 1.  **동적 아티클 추천 (Dynamic Recommendation)**:
     -   정적 데이터가 아닌 외부 소스(RSS 등)에서 아티클을 가져와야 합니다.
-    -   **갱신 주기**: 24시간마다 새로운 아티클을 확인하고 목록을 갱신합니다.
+    -   **제한 (Limit)**: **하루 총 7개** (Hybrid Strategy)
+        -   **3개**: 최신순 & 미열람 우선 (Rule-based)
+        -   **4개**: **Gemini AI**가 사용자 피드백 가중치를 기반으로 추천 (AI-based)
 2.  **아티클 피드백 (User Feedback)**:
     -   사용자는 아티클을 읽은 후 "도움이 됨" / "도움이 안 됨"을 평가할 수 있습니다.
     -   평가 시 **이유**를 텍스트로 기록할 수 있어야 합니다.
 3.  **개인화 추천 (Adaptive Recommendation)**:
-    -   사용자의 피드백(평가 및 이유)이 다음 추천 알고리즘에 가중치로 반영되어야 합니다.
-    -   예: 특정 카테고리의 "도움이 됨" 비율이 높으면 해당 카테고리 노출 빈도 증가.
+    -   **Gemini Integration**: Rust 백엔드에서 Google Gemini API를 호출하여 추천 목록을 생성합니다.
+    -   **Input**: 사용자 피드백 히스토리 + 미열람 아티클 목록.
+    -   **Output**: 사용자 취향에 가장 잘 맞는 아티클 4개 선정.
 4.  **카테고리**: React, Rust, Android, Tauri, TypeScript, General.
-5.  **데이터 소스 (Data Sources)**:
-    -   **Rust**: `https://blog.rust-lang.org/feed.xml`
-    -   **Android**: `https://feeds.feedburner.com/blogspot/hsDu` (Android Developers Blog)
-    -   **Tauri**: `https://tauri.app/blog/rss.xml`
-    -   **React**: `https://react.dev/rss.xml` (Note: React RSS URL needs verify, fallback to `https://react.dev/feed.xml` if needed)
-    -   **TypeScript**: `https://devblogs.microsoft.com/typescript/feed/`
+5.  **데이터 소스 (Data Sources Extensions)**:
+    -   **Rust**: Official Blog, This Week in Rust (`https://this-week-in-rust.org/rss.xml`)
+    -   **Android**: Android Developers, Android Weekly (`https://androidweekly.net/rss`), ProAndroidDev
+    -   **React**: Official Blog, Overreacted (`https://overreacted.io/rss.xml`), React Native Blog
+    -   **Tauri**: Official Blog
+    -   **TypeScript**: Microsoft Blog (`https://devblogs.microsoft.com/typescript/feed/`)
+    -   **General**: Hacker News (Optional)
 
 ### 비기능적 요구사항 (Non-Functional Requirements)
 -   **데이터 영속성**: 피드백 및 캐시된 아티클 데이터는 로컬 DB(Sqlite) 또는 파일로 저장되어야 합니다.

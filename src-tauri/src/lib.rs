@@ -235,19 +235,17 @@ async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>
 async fn fetch_articles(state: State<'_, AppState>, app: tauri::AppHandle) -> Result<usize, String> {
     let feeds = vec![
         ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
+        ("https://this-week-in-rust.org/rss.xml", ArticleCategory::Rust),
         ("https://feeds.feedburner.com/blogspot/hsDu", ArticleCategory::Android),
+        ("https://androidweekly.net/rss", ArticleCategory::Android),
         ("https://tauri.app/blog/rss.xml", ArticleCategory::Tauri),
         ("https://devblogs.microsoft.com/typescript/feed/", ArticleCategory::TypeScript),
-        // React feed is tricky, leaving out or using a known working one if possible. 
-        // Using a generic one or skipping to avoid noise if unsure. 
-        // Spec said https://react.dev/feed.xml. I'll try it.
-        ("https://react.dev/feed.xml", ArticleCategory::React), 
+        ("https://react.dev/feed.xml", ArticleCategory::React),
+        ("https://overreacted.io/rss.xml", ArticleCategory::React),
     ];
 
     let mut new_count = 0;
     
-    // In a real app, use join_all to fetch concurrently. 
-    // Here sequential is fine for a demo commands.
     for (url, category) in feeds {
         if let Ok(fetched) = fetch_feed(url, category).await {
             let mut articles = state.articles.lock().unwrap();
@@ -264,18 +262,97 @@ async fn fetch_articles(state: State<'_, AppState>, app: tauri::AppHandle) -> Re
     Ok(new_count)
 }
 
+async fn recommend_with_gemini(candidates: Vec<Article>, feedback_history: Vec<Feedback>, api_key: String) -> Vec<Article> {
+    // 1. Construct Prompt
+    let mut prompt = String::from("You are a tech article recommender. Select the best 4 articles from the CANDIDATES list based on the USER_FEEDBACK history.\n\n");
+    
+    prompt.push_str("USER_FEEDBACK:\n");
+    for f in feedback_history.iter().take(20) { // Limit history context
+        prompt.push_str(&format!("- Helpful: {}, Reason: {}\n", f.is_helpful, f.reason));
+    }
+
+    prompt.push_str("\nCANDIDATES (JSON):\n");
+    // Simplify candidates to save tokens
+    let simple_candidates: Vec<_> = candidates.iter().map(|a| {
+        serde_json::json!({
+            "id": a.id,
+            "title": a.title,
+            "category": format!("{:?}", a.category),
+            "summary": a.summary.chars().take(100).collect::<String>()
+        })
+    }).collect();
+    prompt.push_str(&serde_json::to_string(&simple_candidates).unwrap_or_default());
+
+    prompt.push_str("\n\nRespond ONLY with a JSON array of the IDs of the 4 selected articles. Example: [\"id1\", \"id2\"]");
+
+    // 2. Call Gemini API
+    let client = reqwest::Client::new();
+    let res = client.post(format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={}", api_key))
+        .json(&serde_json::json!({
+            "contents": [{
+                "parts": [{ "text": prompt }]
+            }]
+        }))
+        .send()
+        .await;
+
+    // 3. Parse Response
+    if let Ok(response) = res {
+        if let Ok(json) = response.json::<serde_json::Value>().await {
+            if let Some(text) = json["candidates"][0]["content"]["parts"][0]["text"].as_str() {
+                // Clean markdown code blocks if present
+                let clean_text = text.replace("```json", "").replace("```", "").trim().to_string();
+                if let Ok(selected_ids) = serde_json::from_str::<Vec<String>>(&clean_text) {
+                     return candidates.into_iter().filter(|a| selected_ids.contains(&a.id)).collect();
+                }
+            }
+        }
+    }
+    
+    // Fallback: Return top 4 from candidates if AI fails
+    candidates.into_iter().take(4).collect()
+}
+
 #[tauri::command]
-fn get_recommended_articles(state: State<AppState>) -> Vec<Article> {
-    let articles = state.articles.lock().unwrap();
-    // Simple sort by date (string compare approx works for standard formats, but not perfect) 
-    // and put unread/helpful on top? 
-    // For V1, just return allreversed (newest first usually in RSS, but we appended)
-    // Actually we appended so newest might be at end if feed is old->new? 
-    // RSS items usually new->old.
-    // Let's just reverse list.
-    let mut list = articles.clone();
-    list.reverse(); 
-    list
+async fn get_recommended_articles(state: State<'_, AppState>) -> Result<Vec<Article>, String> {
+    let articles = state.articles.lock().unwrap().clone();
+    
+    // 0. Filter out duplicate IDs or bad data? (Assumed clean from fetch)
+    
+    // 1. Separate viewed/feedbacked vs new? 
+    // For now, let's treat all available articles as candidates, 
+    // but maybe prioritize ones without feedback for the "Rule-based" part if we want "Unread".
+    // Or just strictly Date based.
+    
+    // Sort by Date Descending
+    let mut sorted_articles = articles.clone();
+    sorted_articles.sort_by(|a, b| b.published_at.cmp(&a.published_at)); // Dictionary sort of date string works for ISO/RSS standard usually
+
+    // 2. Rule-based: Top 3 (Newest)
+    let top_3: Vec<Article> = sorted_articles.iter().take(3).cloned().collect();
+    let remaining: Vec<Article> = sorted_articles.iter().skip(3).cloned().collect();
+
+    // 3. AI-based: Next 4 from remaining
+    // Get API Key from Env or Settings (Simple Env for now)
+    let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
+    
+    let ai_picks = if !api_key.is_empty() && !remaining.is_empty() {
+        // Collect feedback history
+        let feedback_history: Vec<Feedback> = articles.iter()
+            .filter_map(|a| a.feedback.clone())
+            .collect();
+            
+        recommend_with_gemini(remaining, feedback_history, api_key).await
+    } else {
+        // Fallback: Just take next 4
+        remaining.into_iter().take(4).collect()
+    };
+
+    // 4. Combine
+    let mut result = top_3;
+    result.extend(ai_picks);
+    
+    Ok(result)
 }
 
 #[tauri::command]
@@ -339,6 +416,7 @@ mod tests {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    dotenv::dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(AppState::with_demo_data())
