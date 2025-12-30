@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.jimmy.tauri-app",
   "build": {
-    "frontendDist": "../src"
+    "beforeDevCommand": "npm run dev --prefix src",
+    "beforeBuildCommand": "npm run build --prefix src",
+    "devUrl": "http://localhost:5173",
+    "frontendDist": "../src/dist"
   },
   "app": {
     "withGlobalTauri": true,

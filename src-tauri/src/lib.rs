@@ -2,6 +2,11 @@ use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::State;
 
+use std::fs;
+use std::io::Cursor;
+use std::path::PathBuf;
+use tauri::Manager;
+
 // --- Data Structures ---
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -27,11 +32,40 @@ struct WorkLog {
     date: String,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum ArticleCategory {
+    React,
+    Rust,
+    Android,
+    Tauri,
+    TypeScript,
+    General,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Feedback {
+    pub is_helpful: bool,
+    pub reason: String,
+    pub created_at: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Article {
+    pub id: String,
+    pub title: String,
+    pub summary: String,
+    pub url: String,
+    pub category: ArticleCategory,
+    pub published_at: String,
+    pub feedback: Option<Feedback>,
+}
+
 // --- State Management (Simple In-Memory for Demo) ---
 
 struct AppState {
     todos: Mutex<Vec<TodoItem>>,
     work_logs: Mutex<Vec<WorkLog>>,
+    articles: Mutex<Vec<Article>>,
 }
 
 impl AppState {
@@ -40,6 +74,7 @@ impl AppState {
         Self {
             todos: Mutex::new(Vec::new()),
             work_logs: Mutex::new(Vec::new()),
+            articles: Mutex::new(Vec::new()),
         }
     }
 
@@ -57,6 +92,7 @@ impl AppState {
                     completed: true,
                 },
             ]),
+            articles: Mutex::new(Vec::new()),
             work_logs: Mutex::new(vec![WorkLog {
                 id: 1,
                 project: "Personal App".to_string(),
@@ -96,6 +132,28 @@ impl AppState {
             date,
         });
         logs.clone()
+    }
+
+    fn save_articles(&self, app_handle: &tauri::AppHandle) {
+        let articles = self.articles.lock().unwrap();
+        let app_dir = app_handle.path().app_data_dir().unwrap_or(PathBuf::from("."));
+        if !app_dir.exists() {
+            let _ = fs::create_dir_all(&app_dir);
+        }
+        let path = app_dir.join("articles.json");
+        let _ = fs::write(path, serde_json::to_string(&*articles).unwrap_or_default());
+    }
+
+    fn load_articles(&self, app_handle: &tauri::AppHandle) {
+        let app_dir = app_handle.path().app_data_dir().unwrap_or(PathBuf::from("."));
+        let path = app_dir.join("articles.json");
+        if path.exists() {
+            if let Ok(content) = fs::read_to_string(path) {
+                if let Ok(saved) = serde_json::from_str::<Vec<Article>>(&content) {
+                    *self.articles.lock().unwrap() = saved;
+                }
+            }
+        }
     }
 }
 
@@ -152,6 +210,94 @@ fn add_work_log(project: String, hours: f32, state: State<AppState>) -> Vec<Work
     state.add_work_log(project, hours)
 }
 
+// --- Article Commands ---
+
+async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>, String> {
+    let content = reqwest::get(url).await.map_err(|e| e.to_string())?
+        .bytes().await.map_err(|e| e.to_string())?;
+    let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
+    
+    let articles = channel.items().into_iter().map(|item| {
+        Article {
+            id: item.guid().map(|g| g.value()).or(item.link()).unwrap_or("").to_string(),
+            title: item.title().unwrap_or("No Title").to_string(),
+            summary: item.description().unwrap_or("").chars().take(200).collect(),
+            url: item.link().unwrap_or("").to_string(),
+            category: category.clone(),
+            published_at: item.pub_date().unwrap_or("").to_string(),
+            feedback: None,
+        }
+    }).collect();
+    Ok(articles)
+}
+
+#[tauri::command]
+async fn fetch_articles(state: State<'_, AppState>, app: tauri::AppHandle) -> Result<usize, String> {
+    let feeds = vec![
+        ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
+        ("https://feeds.feedburner.com/blogspot/hsDu", ArticleCategory::Android),
+        ("https://tauri.app/blog/rss.xml", ArticleCategory::Tauri),
+        ("https://devblogs.microsoft.com/typescript/feed/", ArticleCategory::TypeScript),
+        // React feed is tricky, leaving out or using a known working one if possible. 
+        // Using a generic one or skipping to avoid noise if unsure. 
+        // Spec said https://react.dev/feed.xml. I'll try it.
+        ("https://react.dev/feed.xml", ArticleCategory::React), 
+    ];
+
+    let mut new_count = 0;
+    
+    // In a real app, use join_all to fetch concurrently. 
+    // Here sequential is fine for a demo commands.
+    for (url, category) in feeds {
+        if let Ok(fetched) = fetch_feed(url, category).await {
+            let mut articles = state.articles.lock().unwrap();
+            for item in fetched {
+                if !articles.iter().any(|a| a.id == item.id) {
+                    articles.push(item);
+                    new_count += 1;
+                }
+            }
+        }
+    }
+    
+    state.save_articles(&app);
+    Ok(new_count)
+}
+
+#[tauri::command]
+fn get_recommended_articles(state: State<AppState>) -> Vec<Article> {
+    let articles = state.articles.lock().unwrap();
+    // Simple sort by date (string compare approx works for standard formats, but not perfect) 
+    // and put unread/helpful on top? 
+    // For V1, just return allreversed (newest first usually in RSS, but we appended)
+    // Actually we appended so newest might be at end if feed is old->new? 
+    // RSS items usually new->old.
+    // Let's just reverse list.
+    let mut list = articles.clone();
+    list.reverse(); 
+    list
+}
+
+#[tauri::command]
+fn submit_feedback(id: String, helpful: bool, reason: String, state: State<AppState>, app: tauri::AppHandle) -> Result<(), String> {
+    let mut articles = state.articles.lock().unwrap();
+    if let Some(article) = articles.iter_mut().find(|a| a.id == id) {
+        article.feedback = Some(Feedback {
+            is_helpful: helpful,
+            reason,
+            created_at: chrono::Local::now().to_rfc3339(),
+        });
+        // Save immediately
+        drop(articles); // release lock before save? save takes lock. 
+        // state.save_articles takes &self, and locks. 
+        // So I must drop lock here.
+        state.save_articles(&app);
+        Ok(())
+    } else {
+        Err("Article not found".to_string())
+    }
+}
+
 // --- Tests ---
 
 #[cfg(test)]
@@ -202,8 +348,16 @@ pub fn run() {
             add_todo,
             toggle_todo,
             get_work_logs,
-            add_work_log
+            add_work_log,
+            fetch_articles,
+            get_recommended_articles,
+            submit_feedback
         ])
+        .setup(|app| {
+            let state = app.state::<AppState>();
+            state.load_articles(app.handle());
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
