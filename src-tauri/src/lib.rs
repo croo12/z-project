@@ -229,7 +229,7 @@ async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>
 
     let articles = channel
         .items()
-        .into_iter()
+        .iter()
         .map(|item| Article {
             id: item
                 .guid()
