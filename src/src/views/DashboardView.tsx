@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "../App.css";
 
@@ -23,18 +23,20 @@ export default function DashboardView() {
   const [workProject, setWorkProject] = useState("");
   const [workHours, setWorkHours] = useState("");
 
-  useEffect(() => {
-    refreshTodos();
-    refreshWorkLogs();
+  const refreshTodos = useCallback(async () => {
+    setTodos(await invoke("get_todos"));
   }, []);
 
-  async function refreshTodos() {
-    setTodos(await invoke("get_todos"));
-  }
-
-  async function refreshWorkLogs() {
+  const refreshWorkLogs = useCallback(async () => {
     setWorkLogs(await invoke("get_work_logs"));
-  }
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    refreshTodos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    refreshWorkLogs();
+  }, []);
 
   async function handleAddTodo(e: React.FormEvent) {
     e.preventDefault();
