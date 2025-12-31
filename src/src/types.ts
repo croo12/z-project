@@ -14,4 +14,6 @@ export interface Article {
   category: ArticleCategory;
   published_at: string;
   feedback?: Feedback | null;
+  image_url?: string;
+  author?: string;
 }

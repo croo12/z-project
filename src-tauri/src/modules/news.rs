@@ -23,6 +23,8 @@ pub struct Article {
     pub category: ArticleCategory,
     pub published_at: String,
     pub feedback: Option<Feedback>,
+    pub image_url: Option<String>,
+    pub author: Option<String>,
 }
 
 pub struct NewsState {
@@ -102,22 +104,69 @@ async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>
         .map_err(|e| e.to_string())?;
     let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
 
+    // Simple regex to find src="..."
+    let re = regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap();
+
     let articles = channel
         .items()
         .iter()
-        .map(|item| Article {
-            id: item
-                .guid()
-                .map(|g| g.value())
-                .or(item.link())
-                .unwrap_or("")
-                .to_string(),
-            title: item.title().unwrap_or("No Title").to_string(),
-            summary: item.description().unwrap_or("").chars().take(200).collect(),
-            url: item.link().unwrap_or("").to_string(),
-            category: category.clone(),
-            published_at: item.pub_date().unwrap_or("").to_string(),
-            feedback: None,
+        .map(|item| {
+            // Extract image URL
+            let mut image_url = None;
+
+            // 1. Check <enclosure>
+            if let Some(enclosure) = item.enclosure() {
+                if enclosure.mime_type().starts_with("image") {
+                    image_url = Some(enclosure.url().to_string());
+                }
+            }
+
+            // 2. Check <media:content> (extensions)
+            if image_url.is_none() {
+                if let Some(media_ext) = item.extensions().get("media") {
+                    if let Some(contents) = media_ext.get("content") {
+                        if let Some(first_content) = contents.first() {
+                            if let Some(url) = first_content.attrs().get("url") {
+                                image_url = Some(url.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Regex match <img src="..."> in description or content
+            if image_url.is_none() {
+                let desc = item.description().unwrap_or("");
+                let content = item.content().unwrap_or("");
+                if let Some(caps) = re.captures(desc) {
+                    image_url = Some(caps[1].to_string());
+                } else if let Some(caps) = re.captures(content) {
+                    image_url = Some(caps[1].to_string());
+                }
+            }
+
+            // Extract Author
+            let author = item.author().map(|a| a.to_string()).or_else(|| {
+                item.dublin_core_ext()
+                    .and_then(|dc| dc.creators.first().cloned())
+            });
+
+            Article {
+                id: item
+                    .guid()
+                    .map(|g| g.value())
+                    .or(item.link())
+                    .unwrap_or("")
+                    .to_string(),
+                title: item.title().unwrap_or("No Title").to_string(),
+                summary: item.description().unwrap_or("").chars().take(200).collect(),
+                url: item.link().unwrap_or("").to_string(),
+                category: category.clone(),
+                published_at: item.pub_date().unwrap_or("").to_string(),
+                feedback: None,
+                image_url,
+                author,
+            }
         })
         .collect();
     Ok(articles)
@@ -325,6 +374,8 @@ mod tests {
             category: ArticleCategory::General,
             published_at: "2024-01-01".to_string(),
             feedback: None,
+            image_url: None,
+            author: None,
         };
         let a2 = Article {
             id: "2".to_string(),
@@ -334,6 +385,8 @@ mod tests {
             category: ArticleCategory::General,
             published_at: "2025-01-01".to_string(),
             feedback: None,
+            image_url: None,
+            author: None,
         };
 
         let mut articles = vec![a1, a2];

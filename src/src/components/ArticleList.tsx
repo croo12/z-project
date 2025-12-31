@@ -69,7 +69,13 @@ export default function ArticleList({ articles, onRefresh, onFeedbackUpdate }: P
                         </span>
                     </div>
                     <h3>{article.title}</h3>
+                    {article.image_url && (
+                        <img src={article.image_url} alt={article.title} style={{ width: '100%', height: '150px', objectFit: 'cover', borderRadius: '4px', marginBottom: '0.5rem' }} />
+                    )}
                     <p>{article.summary}</p>
+                    {article.author && (
+                        <small style={{ display: 'block', color: '#666', marginBottom: '0.5rem' }}>By {article.author}</small>
+                    )}
                     <a href={article.url} target="_blank" className="news-link">Read Article &rarr;</a>
                     
                     {/* Feedback UI */}
