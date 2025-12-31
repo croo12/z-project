@@ -3847,6 +3847,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "dotenv",
+ "regex",
  "reqwest",
  "rss",
  "serde",
