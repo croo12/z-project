@@ -10,9 +10,6 @@ pub enum ArticleCategory {
     General,
     AI,
     Web,
-    Go,
-    Python,
-    Kotlin,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
