@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import type { Article, ArticleCategory } from "../types";
 import "../App.css";
 
-const CATEGORIES: ArticleCategory[] = ["React", "Rust", "Android", "Tauri", "TypeScript", "General"];
+const CATEGORIES: ArticleCategory[] = ["React", "Rust", "Android", "Tauri", "TypeScript", "General", "AI", "Web"];
 
 interface Props {
   articles: Article[];
