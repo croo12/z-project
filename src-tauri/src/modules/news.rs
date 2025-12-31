@@ -240,15 +240,27 @@ pub async fn fetch_articles(
 
     let mut new_count = 0;
 
+    let mut handles = Vec::new();
     for (url, category) in feeds {
-        if let Ok(fetched) = fetch_feed(url, category).await {
-            let mut articles = state.articles.lock().unwrap();
-            for item in fetched {
-                if !articles.iter().any(|a| a.id == item.id) {
-                    articles.push(item);
-                    new_count += 1;
-                }
-            }
+        let url = url.to_string();
+        let category = category.clone();
+        handles.push(tauri::async_runtime::spawn(async move {
+            fetch_feed(&url, category).await
+        }));
+    }
+
+    let mut all_fetched_articles = Vec::new();
+    for handle in handles {
+        if let Ok(Ok(fetched)) = handle.await {
+            all_fetched_articles.extend(fetched);
+        }
+    }
+
+    let mut articles = state.articles.lock().unwrap();
+    for item in all_fetched_articles {
+        if !articles.iter().any(|a| a.id == item.id) {
+            articles.push(item);
+            new_count += 1;
         }
     }
 
