@@ -1,4 +1,4 @@
-export type ArticleCategory = "React" | "Rust" | "Android" | "Tauri" | "TypeScript" | "General";
+export type ArticleCategory = "React" | "Rust" | "Android" | "Tauri" | "TypeScript" | "General" | "AI" | "Web" | "Go" | "Python" | "Kotlin";
 
 export interface Feedback {
   is_helpful: boolean;

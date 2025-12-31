@@ -8,6 +8,11 @@ pub enum ArticleCategory {
     Tauri,
     TypeScript,
     General,
+    AI,
+    Web,
+    Go,
+    Python,
+    Kotlin,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
