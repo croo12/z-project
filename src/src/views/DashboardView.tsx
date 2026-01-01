@@ -32,9 +32,9 @@ export default function DashboardView() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     refreshTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     refreshWorkLogs();
   }, []);
 
