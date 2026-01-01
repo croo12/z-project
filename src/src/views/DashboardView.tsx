@@ -105,7 +105,7 @@ export default function DashboardView() {
             onChange={(e) => setWorkHours(e.target.value)}
             placeholder="h"
             step="0.5"
-            style={{ maxWidth: '60px' }}
+            style={{ maxWidth: "60px" }}
           />
           <button type="submit">Log</button>
         </form>
