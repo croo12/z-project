@@ -6,7 +6,7 @@
 
   color: #0f0f0f;
   background-color: #f6f6f6;
-  
+
   --primary: #396cd8;
   --bg-card: #ffffff;
 }
@@ -26,7 +26,7 @@ body {
   margin: 0 auto;
   background-color: #fff;
   position: relative;
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
 .app-content {
@@ -41,7 +41,9 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: calc(60px + env(safe-area-inset-bottom, 20px)); /* Add safe area + fallback */
+  height: calc(
+    60px + env(safe-area-inset-bottom, 20px)
+  ); /* Add safe area + fallback */
   padding-bottom: env(safe-area-inset-bottom, 20px);
   background: white;
   border-top: 1px solid #eee;

@@ -5,7 +5,9 @@ import ArticleView from "./views/ArticleView";
 import "./App.css";
 
 function App() {
-  const [currentTab, setCurrentTab] = useState<"dashboard" | "articles">("dashboard");
+  const [currentTab, setCurrentTab] = useState<"dashboard" | "articles">(
+    "dashboard"
+  );
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>

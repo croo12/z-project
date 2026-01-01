@@ -10,10 +10,10 @@ export default function ArticleView() {
   const refreshArticles = useCallback(async () => {
     console.log("Refreshing articles...");
     try {
-        const data = await invoke<Article[]>("get_recommended_articles");
-        setArticles(data);
+      const data = await invoke<Article[]>("get_recommended_articles");
+      setArticles(data);
     } catch (e) {
-        console.error("Failed to fetch articles", e);
+      console.error("Failed to fetch articles", e);
     }
   }, []);
 
@@ -25,10 +25,10 @@ export default function ArticleView() {
   return (
     <div className="view-container">
       <h2>Dev Recommendations</h2>
-      <ArticleList 
-        articles={articles} 
-        onRefresh={refreshArticles} 
-        onFeedbackUpdate={refreshArticles} 
+      <ArticleList
+        articles={articles}
+        onRefresh={refreshArticles}
+        onFeedbackUpdate={refreshArticles}
       />
     </div>
   );
