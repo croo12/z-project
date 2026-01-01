@@ -37,7 +37,7 @@ pub struct Article {
     pub feedback: Option<Feedback>,
     pub image_url: Option<String>,
     pub author: Option<String>,
-    // Transient field for runtime scoring, not saved/serialized often? 
+    // Transient field for runtime scoring, not saved/serialized often?
     // Or we keep it simple and just calculate on fly.
     // Making it optional would be fine, but for now we won't serialize it.
 }

@@ -12,20 +12,54 @@ pub fn calculate_relevance_score(article: &Article) -> i32 {
 
     // High Impact Keywords
     let high_impact = [
-        "rust", "tauri", "react", "typescript", "javascript", "android", "kotlin", 
-        "webassembly", "wasm", "docker", "kubernetes", "llvm", "compiler"
+        "rust",
+        "tauri",
+        "react",
+        "typescript",
+        "javascript",
+        "android",
+        "kotlin",
+        "webassembly",
+        "wasm",
+        "docker",
+        "kubernetes",
+        "llvm",
+        "compiler",
     ];
     // Medium Impact Keywords
     let medium_impact = [
-        "code", "programming", "developer", "api", "frontend", "backend", "database", 
-        "algorithm", "git", "linux", "windows", "macos", "design pattern", "refactoring"
+        "code",
+        "programming",
+        "developer",
+        "api",
+        "frontend",
+        "backend",
+        "database",
+        "algorithm",
+        "git",
+        "linux",
+        "windows",
+        "macos",
+        "design pattern",
+        "refactoring",
     ];
     // Negative Keywords (Noise Filter)
     let negative = [
-        "stock", "market", "buffett", "berkshire", "invest", "politics", "crime", 
-        "murder", "sport", "celebrity", "gossip", "bitcoin", "crypto", "blockchain"
-        // Note: Crypto/Blockchain is debatable for tech, but often just noise/finance. 
-        // Keeping it partial negative or neutral might be better, but 'bitcoin' usually means price.
+        "stock",
+        "market",
+        "buffett",
+        "berkshire",
+        "invest",
+        "politics",
+        "crime",
+        "murder",
+        "sport",
+        "celebrity",
+        "gossip",
+        "bitcoin",
+        "crypto",
+        "blockchain", // Note: Crypto/Blockchain is debatable for tech, but often just noise/finance.
+                      // Keeping it partial negative or neutral might be better, but 'bitcoin' usually means price.
     ];
 
     for word in high_impact.iter() {
@@ -45,8 +79,11 @@ pub fn calculate_relevance_score(article: &Article) -> i32 {
     }
 
     // Category Bonus
-    match article.category { 
-        ArticleCategory::Rust | ArticleCategory::Tauri | ArticleCategory::React | ArticleCategory::Android => {
+    match article.category {
+        ArticleCategory::Rust
+        | ArticleCategory::Tauri
+        | ArticleCategory::React
+        | ArticleCategory::Android => {
             score += 5;
         }
         ArticleCategory::General => {
@@ -147,14 +184,21 @@ pub async fn update_user_persona(
     }
 
     let mut prompt = String::from("You are an expert user analyst. Update the User Persona based on the recent feedback provided.\n\n");
-    
+
     if !current_persona.description.is_empty() {
-        prompt.push_str(&format!("CURRENT PERSONA:\n{}\n\n", current_persona.description));
+        prompt.push_str(&format!(
+            "CURRENT PERSONA:\n{}\n\n",
+            current_persona.description
+        ));
     }
 
     prompt.push_str("RECENT FEEDBACK:\n");
-    for f in feedback_history.iter().take(20) { // Analyze last 20 feedback items
-        prompt.push_str(&format!("- Helpful: {}, Reason: {}\n", f.is_helpful, f.reason));
+    for f in feedback_history.iter().take(20) {
+        // Analyze last 20 feedback items
+        prompt.push_str(&format!(
+            "- Helpful: {}, Reason: {}\n",
+            f.is_helpful, f.reason
+        ));
     }
 
     prompt.push_str("\nTask: Write a concise (2-3 sentences) description of this user's technical interests and content preferences based entirely on the verified feedback. Be specific (e.g., 'User likes Rust async, dislikes general finance'). Avoid generic statements.\n\nOutput ONLY the description text.");
@@ -193,7 +237,7 @@ pub async fn recommend_with_gemini(
     if !persona.description.is_empty() {
         prompt.push_str(&format!("TARGET USER PROFILE:\n{}\n\nSelect articles that strictly match this user profile.\n\n", persona.description));
     } else {
-         prompt.push_str("Prioritize technical depth and relevance to Rust, Tauri, React, and System Programming.\n\n");
+        prompt.push_str("Prioritize technical depth and relevance to Rust, Tauri, React, and System Programming.\n\n");
     }
 
     prompt.push_str("CANDIDATES (JSON):\n");
