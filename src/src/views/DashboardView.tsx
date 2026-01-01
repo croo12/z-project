@@ -73,18 +73,58 @@ export default function DashboardView() {
             value={todoInput}
             onChange={(e) => setTodoInput(e.target.value)}
             placeholder="New Task..."
+            aria-label="New task name"
           />
           <button type="submit">Add</button>
         </form>
         <div id="todo-list">
+          {todos.length === 0 && (
+            <div
+              className="empty-state"
+              style={{ textAlign: "center", padding: "1rem", color: "#888" }}
+            >
+              <p>All caught up! 🎉</p>
+            </div>
+          )}
           {todos.map((todo) => (
             <div
               key={todo.id}
               className={`card todo-item ${todo.completed ? "completed" : ""}`}
-              onClick={() => handleToggleTodo(todo.id)}
             >
-              <span>{todo.text}</span>
-              <small>{todo.completed ? "Done" : ""}</small>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  width: "100%",
+                  cursor: "pointer",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => handleToggleTodo(todo.id)}
+                  style={{
+                    marginRight: "10px",
+                    width: "20px",
+                    height: "20px",
+                  }}
+                  aria-label={`Mark ${todo.text} as ${
+                    todo.completed ? "incomplete" : "complete"
+                  }`}
+                />
+                <span
+                  style={{
+                    flex: 1,
+                    textDecoration: todo.completed ? "line-through" : "none",
+                    color: todo.completed ? "#888" : "inherit",
+                  }}
+                >
+                  {todo.text}
+                </span>
+                <small style={{ color: "#888" }}>
+                  {todo.completed ? "Done" : ""}
+                </small>
+              </label>
             </div>
           ))}
         </div>
@@ -98,6 +138,7 @@ export default function DashboardView() {
             value={workProject}
             onChange={(e) => setWorkProject(e.target.value)}
             placeholder="Project"
+            aria-label="Project name"
           />
           <input
             type="number"
@@ -105,11 +146,20 @@ export default function DashboardView() {
             onChange={(e) => setWorkHours(e.target.value)}
             placeholder="h"
             step="0.5"
-            style={{ maxWidth: '60px' }}
+            style={{ maxWidth: "60px" }}
+            aria-label="Hours worked"
           />
           <button type="submit">Log</button>
         </form>
         <div id="work-list">
+          {workLogs.length === 0 && (
+            <div
+              className="empty-state"
+              style={{ textAlign: "center", padding: "1rem", color: "#888" }}
+            >
+              <p>No logs yet 📝</p>
+            </div>
+          )}
           {workLogs.map((log) => (
             <div key={log.id} className="card log-item">
               <span className="log-project">{log.project}</span>
