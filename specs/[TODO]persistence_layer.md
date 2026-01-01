@@ -12,8 +12,8 @@
 
 ### 3.1 기술 스택
 -   **Database**: SQLite
--   **Library**: `tauri-plugin-sql` (Tauri v2 공식 플러그인 권장) 또는 `rusqlite`.
-    -   *Note*: Tauri v2 환경에 최적화된 방식을 선택합니다.
+-   **Library**: `rusqlite` + `r2d2` (Connection Pooling).
+    -   *Reason*: Backend logic requires direct access to the database (replacing `Mutex<Vec>`). `rusqlite` provides better control for Rust-side operations than `tauri-plugin-sql`, which is designed for frontend access.
 
 ### 3.2 데이터베이스 스키마 설계
 기존 데이터 구조를 관계형 테이블로 마이그레이션합니다.

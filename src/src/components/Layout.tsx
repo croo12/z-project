@@ -10,9 +10,7 @@ interface Props {
 export default function Layout({ children, currentTab, onTabChange }: Props) {
   return (
     <div className="app-layout">
-      <main className="app-content">
-        {children}
-      </main>
+      <main className="app-content">{children}</main>
       <BottomNav currentTab={currentTab} onTabChange={onTabChange} />
     </div>
   );
