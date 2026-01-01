@@ -106,11 +106,14 @@ pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCat
     if article.feedback.is_some() {
         score -= 1000;
     }
-    
+
     score
 }
 
-pub async fn fetch_feed(url: &str, source_category: ArticleCategory) -> Result<Vec<Article>, String> {
+pub async fn fetch_feed(
+    url: &str,
+    source_category: ArticleCategory,
+) -> Result<Vec<Article>, String> {
     let content = reqwest::get(url)
         .await
         .map_err(|e| e.to_string())?
@@ -121,7 +124,7 @@ pub async fn fetch_feed(url: &str, source_category: ArticleCategory) -> Result<V
 
     // Simple regex to find src="..."
     let re_img = regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap();
-    
+
     // Keyword Regexes for Re-classification
     let re_rust = regex::Regex::new(r"(?i)\brust\b").unwrap();
     let re_react = regex::Regex::new(r"(?i)\breact\b").unwrap();
@@ -159,7 +162,7 @@ pub async fn fetch_feed(url: &str, source_category: ArticleCategory) -> Result<V
             // 3. Regex match <img src="..."> in description or content
             let desc = item.description().unwrap_or("");
             let content = item.content().unwrap_or("");
-            
+
             if image_url.is_none() {
                 if let Some(caps) = re_img.captures(desc) {
                     image_url = Some(caps[1].to_string());
@@ -195,7 +198,7 @@ pub async fn fetch_feed(url: &str, source_category: ArticleCategory) -> Result<V
             if re_ai.is_match(&text_to_check) && !tags.contains(&ArticleCategory::AI) {
                 tags.push(ArticleCategory::AI);
             }
-            
+
             // Remove General if specialized tag exists
             if tags.len() > 1 && tags[0] == ArticleCategory::General {
                 tags.remove(0);
@@ -251,7 +254,9 @@ pub async fn update_user_persona(
 
     prompt.push_str("\nTask: Analyze the feedback patterns to refine the User Persona.\n");
     prompt.push_str("INSTRUCTIONS:\n");
-    prompt.push_str("1. Identify specific keywords or topics the user explicitly LIKES (Helpful=true).\n");
+    prompt.push_str(
+        "1. Identify specific keywords or topics the user explicitly LIKES (Helpful=true).\n",
+    );
     prompt.push_str("2. Identify topics the user DISLIKES (Helpful=false).\n");
     prompt.push_str("3. Update the description to be specific (e.g., 'User prefers Rust async and Tauri architecture, but dislikes general finance news').\n");
     prompt.push_str("4. Output ONLY the concise description text (2-3 sentences).");
@@ -287,7 +292,7 @@ pub async fn recommend_with_gemini(
 ) -> Vec<Article> {
     // 1. Construct Prompt
     let mut prompt = String::from("You are a tech article recommender. Select the best 4 articles from the CANDIDATES list.\n\n");
-    
+
     // Explicit Inputs
     if !user_interests.is_empty() {
         prompt.push_str(&format!("USER SELECTED TAGS: {:?}\n", user_interests));
@@ -394,7 +399,13 @@ mod tests {
         let s1 = calculate_relevance_score(&downvoted_article, &[]);
         let s2 = calculate_relevance_score(&upvoted_article, &[]);
 
-        assert!(s1 < -500, "Downvoted article should be buried (-1000 penalty)");
-        assert!(s2 < -500, "Upvoted article should also be hidden (treated as read)");
+        assert!(
+            s1 < -500,
+            "Downvoted article should be buried (-1000 penalty)"
+        );
+        assert!(
+            s2 < -500,
+            "Upvoted article should also be hidden (treated as read)"
+        );
     }
 }

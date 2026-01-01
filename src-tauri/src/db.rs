@@ -47,8 +47,6 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     )
     .map_err(|e| e.to_string())?;
 
-
-
     conn.execute(
         "CREATE TABLE IF NOT EXISTS articles (
             id TEXT PRIMARY KEY,

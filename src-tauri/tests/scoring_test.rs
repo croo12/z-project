@@ -15,13 +15,20 @@ fn test_scoring_integration() {
         image_url: None,
         author: None,
     };
-    
+
     // User likes Rust
     let score_rust = calculate_relevance_score(&rust_article, &[ArticleCategory::Rust]);
     let score_none = calculate_relevance_score(&rust_article, &[]);
 
-    assert!(score_rust > score_none, "Explicit interest should boost score");
-    assert!(score_rust >= 60, "Score should be at least 50+10 ({})", score_rust);
+    assert!(
+        score_rust > score_none,
+        "Explicit interest should boost score"
+    );
+    assert!(
+        score_rust >= 60,
+        "Score should be at least 50+10 ({})",
+        score_rust
+    );
 
     // 2. Feedback Logic Test (The User's specific complaint)
     let downvoted_article = Article {
@@ -60,6 +67,14 @@ fn test_scoring_integration() {
     let score_read = calculate_relevance_score(&upvoted_article, &[]);
 
     // Both should be filtered out
-    assert!(score_bad < -500, "Downvoted article should be buried (Score: {})", score_bad);
-    assert!(score_read < -500, "Upvoted article should be hidden as read (Score: {})", score_read);
+    assert!(
+        score_bad < -500,
+        "Downvoted article should be buried (Score: {})",
+        score_bad
+    );
+    assert!(
+        score_read < -500,
+        "Upvoted article should be hidden as read (Score: {})",
+        score_read
+    );
 }

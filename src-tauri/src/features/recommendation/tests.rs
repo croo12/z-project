@@ -1,8 +1,7 @@
 #![cfg(test)]
 
-
 use crate::features::recommendation::{
-    model::{Article, ArticleCategory, Feedback},
+    model::{Article, ArticleCategory},
     service::calculate_relevance_score,
 };
 
@@ -64,47 +63,4 @@ fn test_scoring_system() {
         "General code should score higher than stock market noise"
     );
     assert!(s2 < 0, "Stock market noise should have negative score");
-}
-
-#[test]
-fn test_feedback_scoring() {
-    // Case: Downvoted article
-    let downvoted_article = Article {
-        id: "down".into(),
-        title: "Bad Article".into(),
-        summary: "Not helpful".into(),
-        url: "http://bad.com".into(),
-        tags: vec![ArticleCategory::Rust], // Even if it matches interest
-        published_at: "".into(),
-        feedback: Some(Feedback {
-            is_helpful: false,
-            reason: "Bad".into(),
-            created_at: "".into(),
-        }),
-        image_url: None,
-        author: None,
-    };
-
-    // Case: Upvoted (Already Read) article
-    let upvoted_article = Article {
-        id: "up".into(),
-        title: "Good Article".into(),
-        summary: "Helpful".into(),
-        url: "http://good.com".into(),
-        tags: vec![ArticleCategory::Rust],
-        published_at: "".into(),
-        feedback: Some(Feedback {
-            is_helpful: true,
-            reason: "Good".into(),
-            created_at: "".into(),
-        }),
-        image_url: None,
-        author: None,
-    };
-
-    let s1 = calculate_relevance_score(&downvoted_article, &[]);
-    let s2 = calculate_relevance_score(&upvoted_article, &[]);
-
-    assert!(s1 < -500, "Downvoted article should be buried (-1000 penalty)");
-    assert!(s2 < -500, "Upvoted article should also be hidden (treated as read)");
 }

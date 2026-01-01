@@ -63,7 +63,8 @@ impl RecommendationState {
         let articles_iter = stmt
             .query_map([], |row| {
                 let tags_str: String = row.get(4)?;
-                let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
+                let tags: Vec<ArticleCategory> =
+                    serde_json::from_str(&tags_str).unwrap_or_default();
 
                 let feedback_helpful: Option<bool> = row.get(6).ok();
                 let feedback_reason: Option<String> = row.get(7).ok();
@@ -232,15 +233,19 @@ pub async fn fetch_articles(
 
     for item in all_fetched {
         // Check if exists
-        let existing_tags_json: Option<String> = conn.query_row(
-            "SELECT tags FROM articles WHERE url = ?1",
-            rusqlite::params![item.url],
-            |row| row.get::<_, String>(0),
-        ).optional().map_err(|e| e.to_string())?;
+        let existing_tags_json: Option<String> = conn
+            .query_row(
+                "SELECT tags FROM articles WHERE url = ?1",
+                rusqlite::params![item.url],
+                |row| row.get::<_, String>(0),
+            )
+            .optional()
+            .map_err(|e| e.to_string())?;
 
         let final_tags = if let Some(tags_str) = existing_tags_json {
             // Merge
-            let mut current_tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
+            let mut current_tags: Vec<ArticleCategory> =
+                serde_json::from_str(&tags_str).unwrap_or_default();
             for new_tag in item.tags {
                 if !current_tags.contains(&new_tag) {
                     current_tags.push(new_tag);
@@ -343,16 +348,17 @@ pub async fn submit_feedback(
         ).map_err(|e| e.to_string())?;
     } // conn dropped
 
-
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
         // Check feedback count
         let conn = state.pool.get().map_err(|e| e.to_string())?;
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM articles WHERE feedback_helpful IS NOT NULL",
-            [],
-            |row| row.get(0),
-        ).unwrap_or(0);
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM articles WHERE feedback_helpful IS NOT NULL",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
 
         if count > 0 && count % 3 == 0 {
             println!("Triggering Persona Update (Feedback Count: {})", count);
