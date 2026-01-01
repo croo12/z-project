@@ -227,28 +227,40 @@ interface FeedbackFormProps {
 
 function FeedbackForm({ onSubmit, onCancel }: FeedbackFormProps) {
   const [reason, setReason] = useState("");
+  const [showReasonError, setShowReasonError] = useState(false);
 
   const handleSubmit = (helpful: boolean) => {
     if (!reason.trim()) {
-      alert("Please provide a reason.");
+      setShowReasonError(true);
       return;
     }
+    setShowReasonError(false);
     onSubmit(helpful, reason);
   };
 
   return (
-    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-      <input
-        value={reason}
-        onChange={(e) => setReason(e.target.value)}
-        placeholder="Reason..."
-        autoFocus
-      />
-      <button onClick={() => handleSubmit(true)}>👍</button>
-      <button onClick={() => handleSubmit(false)}>👎</button>
-      <button onClick={onCancel} style={{ background: "#888" }}>
-        Cancel
-      </button>
-    </div>
+    <>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+        <input
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            setShowReasonError(false);
+          }}
+          placeholder="Reason..."
+          autoFocus
+        />
+        <button onClick={() => handleSubmit(true)}>👍</button>
+        <button onClick={() => handleSubmit(false)}>👎</button>
+        <button onClick={onCancel} style={{ background: "#888" }}>
+          Cancel
+        </button>
+      </div>
+      {showReasonError && (
+        <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+          Please provide a reason.
+        </p>
+      )}
+    </>
   );
 }
