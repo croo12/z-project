@@ -1,6 +1,5 @@
 use crate::db::DbPool;
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 use tauri::State;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 #[derive(Serialize, Deserialize, Default, Clone, Debug)]
 pub struct UserPersona {
@@ -6,7 +7,7 @@ pub struct UserPersona {
     pub last_updated: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum ArticleCategory {
     Rust,
     Tauri,
@@ -17,6 +18,12 @@ pub enum ArticleCategory {
     Web,
     AI,
     General,
+}
+
+impl fmt::Display for ArticleCategory {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -37,7 +44,4 @@ pub struct Article {
     pub feedback: Option<Feedback>,
     pub image_url: Option<String>,
     pub author: Option<String>,
-    // Transient field for runtime scoring, not saved/serialized often?
-    // Or we keep it simple and just calculate on fly.
-    // Making it optional would be fine, but for now we won't serialize it.
 }

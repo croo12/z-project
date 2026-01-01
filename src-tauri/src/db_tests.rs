@@ -1,14 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use crate::features::recommendation::model::Article;
-    use crate::features::recommendation::model::ArticleCategory;
     use crate::features::recommendation::system::RecommendationState;
     use crate::modules::todo::TodoState;
     use crate::modules::worklog::WorkLogState;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
-    use rusqlite::Connection;
-    use std::sync::{Arc, Mutex};
 
     fn setup_memory_db() -> Pool<SqliteConnectionManager> {
         // Use shared cache to ensure all connections in the pool see the same in-memory DB
@@ -93,12 +89,12 @@ mod tests {
         assert_eq!(logs[0].hours, 2.5);
     }
 
-    #[tokio::test]
-    async fn test_articles_db_ops() {
-        let pool = setup_memory_db();
-        // We can't test fetch_articles fully because it makes HTTP requests.
-        // But we can test get_recommended_articles reading from DB if we insert manually.
+    #[test]
+    fn test_articles_db_ops() {
+        // Changed to synchronous test since we refactored the logic to be synchronous helper methods.
+        // This avoids async/tokio complexity in unit tests for pure DB logic.
 
+        let pool = setup_memory_db();
         let conn = pool.get().unwrap();
         conn.execute(
              "INSERT INTO articles (id, title, summary, url, category, published_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
@@ -107,12 +103,8 @@ mod tests {
 
         let state = RecommendationState::new(pool.clone());
 
-        // Test Get
-        let articles = crate::features::recommendation::system::get_recommended_articles(
-            tauri::State::from(&state),
-        )
-        .await
-        .unwrap();
+        // Test Get (Internal DB method)
+        let articles = state.get_articles_from_db().unwrap();
         assert!(!articles.is_empty());
         assert_eq!(articles[0].title, "Test Article");
     }
