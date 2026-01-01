@@ -28,7 +28,6 @@ export default function ArticleList({
   const [filter, setFilter] = useState<ArticleCategory | "All">("All");
   const [loading, setLoading] = useState(false);
   const [feedbackingId, setFeedbackingId] = useState<string | null>(null);
-  const [reason, setReason] = useState("");
 
   const filtered = useMemo(() => {
     return filter === "All"
@@ -47,18 +46,21 @@ export default function ArticleList({
   }, [onRefresh]);
 
   const handleSubmitFeedback = useCallback(
-    async (id: string, helpful: boolean) => {
+    async (id: string, helpful: boolean, reason: string) => {
       if (!reason.trim()) {
         alert("Please provide a reason.");
         return;
       }
       await invoke("submit_feedback", { id, helpful, reason });
       setFeedbackingId(null);
-      setReason("");
       onFeedbackUpdate();
     },
-    [reason, onFeedbackUpdate]
+    [onFeedbackUpdate]
   );
+
+  const handleCancelFeedback = useCallback(() => {
+    setFeedbackingId(null);
+  }, []);
 
   return (
     <div className="article-list-container">
@@ -97,10 +99,9 @@ export default function ArticleList({
           <ArticleCard
             key={article.id}
             article={article}
-            feedbackingId={feedbackingId}
-            reason={reason}
-            onSetFeedbackingId={setFeedbackingId}
-            onSetReason={setReason}
+            isFeedbacking={feedbackingId === article.id}
+            onStartFeedback={setFeedbackingId}
+            onCancelFeedback={handleCancelFeedback}
             onSubmitFeedback={handleSubmitFeedback}
           />
         ))}
@@ -127,21 +128,45 @@ function getCategoryColor(cat: ArticleCategory): string {
   }
 }
 
+interface FeedbackInputProps {
+  onSubmit: (helpful: boolean, reason: string) => void;
+  onCancel: () => void;
+}
+
+function FeedbackInput({ onSubmit, onCancel }: FeedbackInputProps) {
+  const [reason, setReason] = useState("");
+
+  return (
+    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+      <input
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Reason..."
+        autoFocus
+        aria-label="Feedback reason"
+      />
+      <button onClick={() => onSubmit(true, reason)}>👍</button>
+      <button onClick={() => onSubmit(false, reason)}>👎</button>
+      <button onClick={onCancel} style={{ background: "#888" }}>
+        Cancel
+      </button>
+    </div>
+  );
+}
+
 interface ArticleCardProps {
   article: Article;
-  feedbackingId: string | null;
-  reason: string;
-  onSetFeedbackingId: (id: string | null) => void;
-  onSetReason: (reason: string) => void;
-  onSubmitFeedback: (id: string, helpful: boolean) => void;
+  isFeedbacking: boolean;
+  onStartFeedback: (id: string) => void;
+  onCancelFeedback: () => void;
+  onSubmitFeedback: (id: string, helpful: boolean, reason: string) => void;
 }
 
 const ArticleCard = memo(function ArticleCard({
   article,
-  feedbackingId,
-  reason,
-  onSetFeedbackingId,
-  onSetReason,
+  isFeedbacking,
+  onStartFeedback,
+  onCancelFeedback,
   onSubmitFeedback,
 }: ArticleCardProps) {
   return (
@@ -205,30 +230,16 @@ const ArticleCard = memo(function ArticleCard({
             {article.feedback.is_helpful ? "👍 Helpful" : "👎 Not Helpful"}(
             {article.feedback.reason})
           </small>
-        ) : feedbackingId === article.id ? (
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-            <input
-              value={reason}
-              onChange={(e) => onSetReason(e.target.value)}
-              placeholder="Reason..."
-              autoFocus
-            />
-            <button onClick={() => onSubmitFeedback(article.id, true)}>
-              👍
-            </button>
-            <button onClick={() => onSubmitFeedback(article.id, false)}>
-              👎
-            </button>
-            <button
-              onClick={() => onSetFeedbackingId(null)}
-              style={{ background: "#888" }}
-            >
-              Cancel
-            </button>
-          </div>
+        ) : isFeedbacking ? (
+          <FeedbackInput
+            onSubmit={(helpful, reason) =>
+              onSubmitFeedback(article.id, helpful, reason)
+            }
+            onCancel={onCancelFeedback}
+          />
         ) : (
           <button
-            onClick={() => onSetFeedbackingId(article.id)}
+            onClick={() => onStartFeedback(article.id)}
             style={{
               fontSize: "0.8rem",
               padding: "4px 8px",

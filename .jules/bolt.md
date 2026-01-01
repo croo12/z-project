@@ -1,0 +1,3 @@
+## 2024-05-23 - Feedback Form Performance Optimization
+**Learning:** Moving form state from a parent list component to the individual item component (or a dedicated child component) significantly reduces re-renders. In `ArticleList`, typing in the feedback reason input previously caused the entire list of articles to re-render on every keystroke because the state was held in the parent and passed down. By localizing this state to `FeedbackInput` inside `ArticleCard`, we isolated the re-renders to only the active input.
+**Action:** Always check where form state lives. If a form is part of a list item, ensure its state is local to that item to prevent list-wide re-renders.
