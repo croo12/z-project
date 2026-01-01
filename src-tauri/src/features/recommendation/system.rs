@@ -2,28 +2,26 @@ use super::model::{Article, ArticleCategory, Feedback, UserPersona};
 use super::service::{
     calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
 };
+use crate::db::DbPool;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Manager, State};
 
 pub struct RecommendationState {
-    pub articles: Mutex<Vec<Article>>,
+    pub pool: DbPool,
     pub persona: Mutex<UserPersona>,
 }
 
-impl Default for RecommendationState {
-    fn default() -> Self {
+impl RecommendationState {
+    pub fn new(pool: DbPool) -> Self {
         Self {
-            articles: Mutex::new(Vec::new()),
+            pool,
             persona: Mutex::new(UserPersona::default()),
         }
     }
-}
 
-impl RecommendationState {
-    pub fn save_articles(&self, app_handle: &tauri::AppHandle) {
-        let articles = self.articles.lock().unwrap();
+    pub fn save_persona(&self, app_handle: &tauri::AppHandle) {
         let app_dir = app_handle
             .path()
             .app_data_dir()
@@ -31,10 +29,6 @@ impl RecommendationState {
         if !app_dir.exists() {
             let _ = fs::create_dir_all(&app_dir);
         }
-        let path = app_dir.join("articles_v2.json");
-        let _ = fs::write(path, serde_json::to_string(&*articles).unwrap_or_default());
-
-        // Save Persona
         let persona = self.persona.lock().unwrap();
         let persona_path = app_dir.join("user_persona.json");
         let _ = fs::write(
@@ -43,22 +37,11 @@ impl RecommendationState {
         );
     }
 
-    pub fn load_articles(&self, app_handle: &tauri::AppHandle) {
+    pub fn load_persona(&self, app_handle: &tauri::AppHandle) {
         let app_dir = app_handle
             .path()
             .app_data_dir()
             .unwrap_or(PathBuf::from("."));
-
-        let path = app_dir.join("articles_v2.json");
-        if path.exists() {
-            if let Ok(content) = fs::read_to_string(path) {
-                if let Ok(saved) = serde_json::from_str::<Vec<Article>>(&content) {
-                    *self.articles.lock().unwrap() = saved;
-                }
-            }
-        }
-
-        // Load Persona
         let persona_path = app_dir.join("user_persona.json");
         if persona_path.exists() {
             if let Ok(content) = fs::read_to_string(persona_path) {
@@ -68,12 +51,89 @@ impl RecommendationState {
             }
         }
     }
+
+    // Refactored to separate DB logic from async calls to solve Send issues and allow easier testing
+    pub fn get_articles_from_db(&self) -> Result<Vec<Article>, String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at FROM articles")
+            .map_err(|e| e.to_string())?;
+
+        let articles_iter = stmt
+            .query_map([], |row| {
+                let cat_str: String = row.get(4)?;
+                let category = match cat_str.as_str() {
+                    "Rust" => ArticleCategory::Rust,
+                    "Android" => ArticleCategory::Android,
+                    "Tauri" => ArticleCategory::Tauri,
+                    "TypeScript" => ArticleCategory::TypeScript,
+                    "Web" => ArticleCategory::Web,
+                    "React" => ArticleCategory::React,
+                    "AI" => ArticleCategory::AI,
+                    "General" => ArticleCategory::General,
+                    _ => ArticleCategory::General, // Fallback
+                };
+
+                let feedback_helpful: Option<bool> = row.get(6).ok();
+                let feedback_reason: Option<String> = row.get(7).ok();
+                let feedback_at: Option<String> = row.get(8).ok();
+
+                let feedback = if let (Some(h), Some(r), Some(t)) =
+                    (feedback_helpful, feedback_reason, feedback_at)
+                {
+                    Some(Feedback {
+                        is_helpful: h,
+                        reason: r,
+                        created_at: t,
+                    })
+                } else {
+                    None
+                };
+
+                Ok(Article {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    summary: row.get(2)?,
+                    url: row.get(3)?,
+                    category,
+                    published_at: row.get(5)?,
+                    image_url: None,
+                    author: None,
+                    feedback,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+
+        let mut articles = Vec::new();
+        for a in articles_iter {
+            articles.push(a.map_err(|e| e.to_string())?);
+        }
+        Ok(articles)
+    }
+
+    pub fn get_feedback_from_db(&self) -> Result<Vec<Feedback>, String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+        let mut stmt = conn.prepare("SELECT feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NOT NULL")
+             .map_err(|e| e.to_string())?;
+
+        let feedback_iter = stmt
+            .query_map([], |row| {
+                Ok(Feedback {
+                    is_helpful: row.get(0)?,
+                    reason: row.get(1)?,
+                    created_at: row.get(2)?,
+                })
+            })
+            .map_err(|e| e.to_string())?;
+
+        Ok(feedback_iter.filter_map(|f| f.ok()).collect())
+    }
 }
 
 #[tauri::command]
 pub async fn fetch_articles(
     state: State<'_, RecommendationState>,
-    app: tauri::AppHandle,
+    _app: tauri::AppHandle,
 ) -> Result<usize, String> {
     let feeds = vec![
         // Rust
@@ -131,27 +191,42 @@ pub async fn fetch_articles(
         // AI
         ("https://openai.com/blog/rss.xml", ArticleCategory::AI),
         ("https://blogs.microsoft.com/ai/feed/", ArticleCategory::AI),
-        // General / Tech (Filtered heavily by score)
+        // General / Tech
         ("https://news.ycombinator.com/rss", ArticleCategory::General),
         ("https://dev.to/feed", ArticleCategory::General),
     ];
 
     let mut new_count = 0;
+    let mut all_fetched = Vec::new();
 
-    // Concurrency could be improved here with join_all but keeping it simple for now as per previous design
     for (url, category) in feeds {
         if let Ok(fetched) = fetch_feed(url, category).await {
-            let mut articles = state.articles.lock().unwrap();
-            for item in fetched {
-                if !articles.iter().any(|a| a.id == item.id) {
-                    articles.push(item);
-                    new_count += 1;
-                }
-            }
+            all_fetched.extend(fetched);
         }
     }
 
-    state.save_articles(&app);
+    let conn = state.pool.get().map_err(|e| e.to_string())?;
+
+    for item in all_fetched {
+        let count: u32 = conn.execute(
+            "INSERT OR IGNORE INTO articles (id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![
+                item.id,
+                item.title,
+                item.summary,
+                item.url,
+                item.category.to_string(),
+                item.published_at,
+                item.feedback.as_ref().map(|f| f.is_helpful),
+                item.feedback.as_ref().map(|f| f.reason.clone()),
+                item.feedback.as_ref().map(|f| f.created_at.clone())
+            ],
+        ).map_err(|e| e.to_string())? as u32;
+
+        new_count += count as usize;
+    }
+
     Ok(new_count)
 }
 
@@ -159,13 +234,14 @@ pub async fn fetch_articles(
 pub async fn get_recommended_articles(
     state: State<'_, RecommendationState>,
 ) -> Result<Vec<Article>, String> {
-    let articles = state.articles.lock().unwrap().clone();
+    // DB Access must happen synchronously and drop connection before async AI calls
+    let articles = state.get_articles_from_db()?;
 
     // 1. Calculate Scores & Sort
     let mut scored_articles: Vec<(i32, Article)> = articles
         .into_iter()
         .map(|a| (calculate_relevance_score(&a), a))
-        .filter(|(score, _)| *score > -10) // Filter out very negative articles (e.g. pure noise)
+        .filter(|(score, _)| *score > -10)
         .collect();
 
     // Sort by Score DESC, then Date DESC
@@ -185,11 +261,10 @@ pub async fn get_recommended_articles(
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
 
     let ai_picks = if !api_key.is_empty() && !remaining.is_empty() {
-        // Use top 20 remaining as candidates for AI mostly to save tokens,
-        // relying on our scoring to have put the good stuff in these top 20.
         let candidates_for_ai: Vec<Article> = remaining.into_iter().take(20).collect();
-
         let persona = state.persona.lock().unwrap().clone();
+
+        // This await is now safe because we are not holding any DB locks/connections
         recommend_with_gemini(candidates_for_ai, &persona, api_key).await
     } else {
         remaining.into_iter().take(4).collect()
@@ -210,36 +285,30 @@ pub async fn submit_feedback(
     state: State<'_, RecommendationState>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    let all_feedback: Vec<Feedback>;
+    // 1. Update DB (scoped)
     {
-        let mut articles = state.articles.lock().unwrap();
-        if let Some(article) = articles.iter_mut().find(|a| a.id == id) {
-            article.feedback = Some(Feedback {
-                is_helpful: helpful,
-                reason,
-                created_at: chrono::Local::now().to_rfc3339(),
-            });
-            // Clone feedback for async processing
-            all_feedback = articles.iter().filter_map(|a| a.feedback.clone()).collect();
-        } else {
-            return Err("Article not found".to_string());
-        }
-    } // MutexGuard dropped here, safe to await later
+        let conn = state.pool.get().map_err(|e| e.to_string())?;
+        let timestamp = chrono::Local::now().to_rfc3339();
+        conn.execute(
+            "UPDATE articles SET feedback_helpful = ?1, feedback_reason = ?2, feedback_at = ?3 WHERE id = ?4",
+            rusqlite::params![helpful, reason, timestamp, id],
+        ).map_err(|e| e.to_string())?;
+    } // conn dropped
 
-    state.save_articles(&app);
+    // 2. Fetch all feedback (scoped)
+    let all_feedback = state.get_feedback_from_db()?;
 
-    // AI Persona Update
+    // 3. AI Persona Update
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
         let current_persona = state.persona.lock().unwrap().clone();
-        // Call AI service
+
+        // Async call safe here
         if let Ok(new_persona) =
             update_user_persona(&all_feedback, &current_persona, &api_key).await
         {
-            // Update State
             *state.persona.lock().unwrap() = new_persona;
-            // Save Persona (via save_articles helper or directly, here helper saves both)
-            state.save_articles(&app);
+            state.save_persona(&app);
         }
     }
 
