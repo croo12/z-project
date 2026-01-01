@@ -39,9 +39,14 @@ pub struct Article {
     pub title: String,
     pub summary: String,
     pub url: String,
-    pub category: ArticleCategory,
+    pub tags: Vec<ArticleCategory>,
     pub published_at: String,
     pub feedback: Option<Feedback>,
     pub image_url: Option<String>,
     pub author: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Default, Clone, Debug)]
+pub struct UserPreferences {
+    pub interested_tags: Vec<ArticleCategory>,
 }

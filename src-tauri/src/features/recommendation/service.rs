@@ -4,7 +4,7 @@ use std::io::Cursor;
 
 /// Calculates a relevance score for an article to filter out noise (e.g., Finance, Politics).
 /// Positive score: Keep/Promote. Negative score: Demote/Discard.
-pub fn calculate_relevance_score(article: &Article) -> i32 {
+pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCategory]) -> i32 {
     let mut score = 0;
     let title_lower = article.title.to_lowercase();
     let summary_lower = article.summary.to_lowercase();
@@ -58,8 +58,7 @@ pub fn calculate_relevance_score(article: &Article) -> i32 {
         "gossip",
         "bitcoin",
         "crypto",
-        "blockchain", // Note: Crypto/Blockchain is debatable for tech, but often just noise/finance.
-                      // Keeping it partial negative or neutral might be better, but 'bitcoin' usually means price.
+        "blockchain",
     ];
 
     for word in high_impact.iter() {
@@ -78,26 +77,43 @@ pub fn calculate_relevance_score(article: &Article) -> i32 {
         }
     }
 
-    // Category Bonus
-    match article.category {
-        ArticleCategory::Rust
-        | ArticleCategory::Tauri
-        | ArticleCategory::React
-        | ArticleCategory::Android => {
-            score += 5;
+    // Category Bonus using Tags
+    for tag in &article.tags {
+        // 1. Explicit User Interest Bonus (Primary Filter)
+        if user_interests.contains(tag) {
+            score += 50; // Huge boost for explicit selection
         }
-        ArticleCategory::General => {
-            // No bonus, rely on content
+
+        // 2. General Tech Bonus
+        match tag {
+            ArticleCategory::Rust
+            | ArticleCategory::Tauri
+            | ArticleCategory::React
+            | ArticleCategory::Android => {
+                score += 5;
+            }
+            ArticleCategory::General => {
+                // No bonus
+            }
+            _ => {
+                score += 2;
+            }
         }
-        _ => {
-            score += 2;
-        }
+    }
+
+    // Feedback Logic (User Override)
+    // If feedback exists (Positive or Negative), consider it "Read/Processed" and remove from recommendations.
+    if article.feedback.is_some() {
+        score -= 1000;
     }
 
     score
 }
 
-pub async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Article>, String> {
+pub async fn fetch_feed(
+    url: &str,
+    source_category: ArticleCategory,
+) -> Result<Vec<Article>, String> {
     let content = reqwest::get(url)
         .await
         .map_err(|e| e.to_string())?
@@ -107,7 +123,14 @@ pub async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Arti
     let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
 
     // Simple regex to find src="..."
-    let re = regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap();
+    let re_img = regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap();
+
+    // Keyword Regexes for Re-classification
+    let re_rust = regex::Regex::new(r"(?i)\brust\b").unwrap();
+    let re_react = regex::Regex::new(r"(?i)\breact\b").unwrap();
+    let re_android = regex::Regex::new(r"(?i)\bandroid\b").unwrap();
+    let re_tauri = regex::Regex::new(r"(?i)\btauri\b").unwrap();
+    let re_ai = regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap();
 
     let articles = channel
         .items()
@@ -137,12 +160,13 @@ pub async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Arti
             }
 
             // 3. Regex match <img src="..."> in description or content
+            let desc = item.description().unwrap_or("");
+            let content = item.content().unwrap_or("");
+
             if image_url.is_none() {
-                let desc = item.description().unwrap_or("");
-                let content = item.content().unwrap_or("");
-                if let Some(caps) = re.captures(desc) {
+                if let Some(caps) = re_img.captures(desc) {
                     image_url = Some(caps[1].to_string());
-                } else if let Some(caps) = re.captures(content) {
+                } else if let Some(caps) = re_img.captures(content) {
                     image_url = Some(caps[1].to_string());
                 }
             }
@@ -153,6 +177,33 @@ pub async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Arti
                     .and_then(|dc| dc.creators.first().cloned())
             });
 
+            // Tags Logic
+            let mut tags = vec![source_category.clone()];
+            let title = item.title().unwrap_or("");
+            let text_to_check = format!("{} {}", title, desc);
+
+            // Keyword based expansion
+            if re_rust.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Rust) {
+                tags.push(ArticleCategory::Rust);
+            }
+            if re_react.is_match(&text_to_check) && !tags.contains(&ArticleCategory::React) {
+                tags.push(ArticleCategory::React);
+            }
+            if re_android.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Android) {
+                tags.push(ArticleCategory::Android);
+            }
+            if re_tauri.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Tauri) {
+                tags.push(ArticleCategory::Tauri);
+            }
+            if re_ai.is_match(&text_to_check) && !tags.contains(&ArticleCategory::AI) {
+                tags.push(ArticleCategory::AI);
+            }
+
+            // Remove General if specialized tag exists
+            if tags.len() > 1 && tags[0] == ArticleCategory::General {
+                tags.remove(0);
+            }
+
             Article {
                 id: item
                     .guid()
@@ -160,10 +211,10 @@ pub async fn fetch_feed(url: &str, category: ArticleCategory) -> Result<Vec<Arti
                     .or(item.link())
                     .unwrap_or("")
                     .to_string(),
-                title: item.title().unwrap_or("No Title").to_string(),
-                summary: item.description().unwrap_or("").chars().take(250).collect(),
+                title: title.to_string(),
+                summary: desc.chars().take(250).collect(),
                 url: item.link().unwrap_or("").to_string(),
-                category: category.clone(),
+                tags,
                 published_at: item.pub_date().unwrap_or("").to_string(),
                 feedback: None,
                 image_url,
@@ -201,7 +252,14 @@ pub async fn update_user_persona(
         ));
     }
 
-    prompt.push_str("\nTask: Write a concise (2-3 sentences) description of this user's technical interests and content preferences based entirely on the verified feedback. Be specific (e.g., 'User likes Rust async, dislikes general finance'). Avoid generic statements.\n\nOutput ONLY the description text.");
+    prompt.push_str("\nTask: Analyze the feedback patterns to refine the User Persona.\n");
+    prompt.push_str("INSTRUCTIONS:\n");
+    prompt.push_str(
+        "1. Identify specific keywords or topics the user explicitly LIKES (Helpful=true).\n",
+    );
+    prompt.push_str("2. Identify topics the user DISLIKES (Helpful=false).\n");
+    prompt.push_str("3. Update the description to be specific (e.g., 'User prefers Rust async and Tauri architecture, but dislikes general finance news').\n");
+    prompt.push_str("4. Output ONLY the concise description text (2-3 sentences).");
 
     let client = reqwest::Client::new();
     let res = client.post(format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}", api_key))
@@ -229,13 +287,20 @@ pub async fn update_user_persona(
 pub async fn recommend_with_gemini(
     candidates: Vec<Article>,
     persona: &UserPersona,
+    user_interests: &[ArticleCategory],
     api_key: String,
 ) -> Vec<Article> {
     // 1. Construct Prompt
     let mut prompt = String::from("You are a tech article recommender. Select the best 4 articles from the CANDIDATES list.\n\n");
 
+    // Explicit Inputs
+    if !user_interests.is_empty() {
+        prompt.push_str(&format!("USER SELECTED TAGS: {:?}\n", user_interests));
+        prompt.push_str("INSTRUCTION: Prioritize articles that match the USER SELECTED TAGS above all else.\n\n");
+    }
+
     if !persona.description.is_empty() {
-        prompt.push_str(&format!("TARGET USER PROFILE:\n{}\n\nSelect articles that strictly match this user profile.\n\n", persona.description));
+        prompt.push_str(&format!("USER PERSONA (Implicit Preferences):\n{}\n\nThen, refine the selection to match this persona.\n\n", persona.description));
     } else {
         prompt.push_str("Prioritize technical depth and relevance to Rust, Tauri, React, and System Programming.\n\n");
     }
@@ -247,7 +312,7 @@ pub async fn recommend_with_gemini(
             serde_json::json!({
                 "id": a.id,
                 "title": a.title,
-                "category": format!("{:?}", a.category),
+                "tags": format!("{:?}", a.tags),
                 "summary": a.summary.chars().take(150).collect::<String>()
             })
         })
@@ -288,4 +353,59 @@ pub async fn recommend_with_gemini(
 
     // Fallback or if AI fails
     candidates.into_iter().take(4).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
+
+    #[test]
+    fn test_feedback_scoring_internal() {
+        // Case: Downvoted article
+        let downvoted_article = Article {
+            id: "down".into(),
+            title: "Bad Article".into(),
+            summary: "Not helpful".into(),
+            url: "http://bad.com".into(),
+            tags: vec![ArticleCategory::Rust],
+            published_at: "".into(),
+            feedback: Some(Feedback {
+                is_helpful: false,
+                reason: "Bad".into(),
+                created_at: "".into(),
+            }),
+            image_url: None,
+            author: None,
+        };
+
+        // Case: Upvoted (Already Read) article
+        let upvoted_article = Article {
+            id: "up".into(),
+            title: "Good Article".into(),
+            summary: "Helpful".into(),
+            url: "http://good.com".into(),
+            tags: vec![ArticleCategory::Rust],
+            published_at: "".into(),
+            feedback: Some(Feedback {
+                is_helpful: true,
+                reason: "Good".into(),
+                created_at: "".into(),
+            }),
+            image_url: None,
+            author: None,
+        };
+
+        let s1 = calculate_relevance_score(&downvoted_article, &[]);
+        let s2 = calculate_relevance_score(&upvoted_article, &[]);
+
+        assert!(
+            s1 < -500,
+            "Downvoted article should be buried (-1000 penalty)"
+        );
+        assert!(
+            s2 < -500,
+            "Upvoted article should also be hidden (treated as read)"
+        );
+    }
 }

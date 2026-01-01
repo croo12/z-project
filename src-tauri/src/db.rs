@@ -52,9 +52,11 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
             id TEXT PRIMARY KEY,
             title TEXT,
             summary TEXT,
-            url TEXT,
-            category TEXT,
+            url TEXT UNIQUE,
+            tags TEXT,
             published_at TEXT,
+            image_url TEXT NULL,
+            author TEXT NULL,
             feedback_helpful BOOLEAN NULL,
             feedback_reason TEXT NULL,
             feedback_at TEXT NULL

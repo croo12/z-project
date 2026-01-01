@@ -1,12 +1,17 @@
-export type ArticleCategory =
-  | "React"
-  | "Rust"
-  | "Android"
-  | "Tauri"
-  | "TypeScript"
-  | "General"
-  | "AI"
-  | "Web";
+// Using const object instead of enum to avoid 'erasableSyntaxOnly' issues
+export const ArticleCategory = {
+  Rust: "Rust",
+  Tauri: "Tauri",
+  React: "React",
+  TypeScript: "TypeScript",
+  Android: "Android",
+  Kotlin: "Kotlin",
+  Web: "Web",
+  AI: "AI",
+  General: "General",
+} as const;
+
+export type ArticleCategory = typeof ArticleCategory[keyof typeof ArticleCategory];
 
 export interface Feedback {
   is_helpful: boolean;
@@ -19,7 +24,7 @@ export interface Article {
   title: string;
   summary: string;
   url: string;
-  category: ArticleCategory;
+  tags: ArticleCategory[];
   published_at: string;
   feedback?: Feedback | null;
   image_url?: string;

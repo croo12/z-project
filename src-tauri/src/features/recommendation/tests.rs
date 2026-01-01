@@ -13,7 +13,7 @@ fn test_scoring_system() {
         title: "Rust 1.85 Released with Async improvements".into(),
         summary: "Great new features for memory safety and performance.".into(),
         url: "".into(),
-        category: ArticleCategory::Rust,
+        tags: vec![ArticleCategory::Rust],
         published_at: "".into(),
         feedback: None,
         image_url: None,
@@ -26,7 +26,7 @@ fn test_scoring_system() {
         title: "Warren Buffett sells Berkshire Hathaway stock".into(),
         summary: "Market analysis of the recent finance trends.".into(),
         url: "".into(),
-        category: ArticleCategory::General,
+        tags: vec![ArticleCategory::General],
         published_at: "".into(),
         feedback: None,
         image_url: None,
@@ -39,16 +39,16 @@ fn test_scoring_system() {
         title: "10 Tips for cleaner Code".into(),
         summary: "Refactoring tips for developers.".into(),
         url: "".into(),
-        category: ArticleCategory::General,
+        tags: vec![ArticleCategory::General],
         published_at: "".into(),
         feedback: None,
         image_url: None,
         author: None,
     };
 
-    let s1 = calculate_relevance_score(&rust_article);
-    let s2 = calculate_relevance_score(&stock_article);
-    let s3 = calculate_relevance_score(&tech_article);
+    let s1 = calculate_relevance_score(&rust_article, &[]);
+    let s2 = calculate_relevance_score(&stock_article, &[]);
+    let s3 = calculate_relevance_score(&tech_article, &[]);
 
     println!("Rust Score: {}", s1);
     println!("Stock Score: {}", s2);
