@@ -1,18 +1,10 @@
 import { useState, useMemo, memo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Article, ArticleCategory } from "../types";
+import { ArticleCategory } from "../types";
+import type { Article } from "../types";
 import "../App.css";
 
-const CATEGORIES: ArticleCategory[] = [
-  "React",
-  "Rust",
-  "Android",
-  "Tauri",
-  "TypeScript",
-  "General",
-  "AI",
-  "Web",
-];
+const CATEGORIES: ArticleCategory[] = Object.values(ArticleCategory);
 
 interface Props {
   articles: Article[];

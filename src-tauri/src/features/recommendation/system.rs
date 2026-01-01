@@ -64,7 +64,10 @@ impl RecommendationState {
             .query_map([], |row| {
                 let tags_str: String = row.get(4)?;
                 let tags: Vec<ArticleCategory> =
-                    serde_json::from_str(&tags_str).unwrap_or_default();
+                    serde_json::from_str(&tags_str).unwrap_or_else(|e| {
+                        eprintln!("Failed to deserialize tags from DB: {}", e);
+                        Default::default()
+                    });
 
                 let feedback_helpful: Option<bool> = row.get(6).ok();
                 let feedback_reason: Option<String> = row.get(7).ok();
@@ -156,7 +159,6 @@ impl RecommendationState {
 #[tauri::command]
 pub async fn fetch_articles(
     state: State<'_, RecommendationState>,
-    _app: tauri::AppHandle,
 ) -> Result<usize, String> {
     let feeds = vec![
         // Rust

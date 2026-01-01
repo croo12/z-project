@@ -2,20 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { cn } from "../lib/utils";
 
-// Using const object instead of enum to avoid 'erasableSyntaxOnly' issues
-export const ArticleCategory = {
-  Rust: "Rust",
-  Tauri: "Tauri",
-  React: "React",
-  TypeScript: "TypeScript",
-  Android: "Android",
-  Kotlin: "Kotlin",
-  Web: "Web",
-  AI: "AI",
-  General: "General",
-} as const;
-
-export type ArticleCategory = typeof ArticleCategory[keyof typeof ArticleCategory];
+import { ArticleCategory } from "../types";
 
 interface CategorySelectorProps {
   className?: string;
