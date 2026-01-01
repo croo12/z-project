@@ -32,7 +32,7 @@ export default function ArticleList({
   const filtered = useMemo(() => {
     return filter === "All"
       ? articles
-      : articles.filter((a) => a.category === filter);
+      : articles.filter((a) => a.tags.includes(filter));
   }, [articles, filter]);
 
   const handleRefresh = useCallback(async () => {
@@ -133,22 +133,29 @@ const ArticleCard = memo(function ArticleCard({
   onSubmitFeedback,
 }: ArticleCardProps) {
   // Optimization: reason state removed from props to prevent re-renders of all cards on keystroke
+  const primaryTag = article.tags[0] || "General";
   return (
     <div
       className="card article-item"
-      style={{ borderLeft: `4px solid ${getCategoryColor(article.category)}` }}
+      style={{ borderLeft: `4px solid ${getCategoryColor(primaryTag)}` }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <span
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            color: getCategoryColor(article.category),
-          }}
-        >
-          {article.category}
-        </span>
-        <span style={{ fontSize: "0.8rem", color: "#888" }}>
+      <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", marginBottom: "8px" }}>
+        {article.tags.map(tag => (
+          <span
+            key={tag}
+            style={{
+              fontSize: "0.7rem",
+              fontWeight: "bold",
+              color: "#fff",
+              backgroundColor: getCategoryColor(tag),
+              padding: "2px 6px",
+              borderRadius: "4px",
+            }}
+          >
+            {tag}
+          </span>
+        ))}
+        <span style={{ fontSize: "0.8rem", color: "#888", marginLeft: "auto" }}>
           {new Date(article.published_at).toLocaleDateString()}
         </span>
       </div>

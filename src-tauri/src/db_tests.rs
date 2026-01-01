@@ -44,8 +44,8 @@ mod tests {
                 id TEXT PRIMARY KEY,
                 title TEXT,
                 summary TEXT,
-                url TEXT,
-                category TEXT,
+                url TEXT UNIQUE,
+                tags TEXT,
                 published_at TEXT,
                 feedback_helpful BOOLEAN NULL,
                 feedback_reason TEXT NULL,
@@ -102,8 +102,8 @@ mod tests {
         let pool = setup_memory_db();
         let conn = pool.get().unwrap();
         conn.execute(
-             "INSERT INTO articles (id, title, summary, url, category, published_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-             rusqlite::params!["1", "Test Article", "Summary", "http://example.com", "Rust", "2023-01-01"],
+             "INSERT INTO articles (id, title, summary, url, tags, published_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+             rusqlite::params!["1", "Test Article", "Summary", "http://example.com", "[\"Rust\"]", "2023-01-01"],
          ).unwrap();
 
         let state = RecommendationState::new(pool.clone());

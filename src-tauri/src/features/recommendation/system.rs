@@ -1,8 +1,9 @@
-use super::model::{Article, ArticleCategory, Feedback, UserPersona};
+use super::model::{Article, ArticleCategory, Feedback, UserPersona, UserPreferences};
 use super::service::{
     calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
 };
 use crate::db::DbPool;
+use rusqlite::OptionalExtension;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -56,23 +57,13 @@ impl RecommendationState {
     pub fn get_articles_from_db(&self) -> Result<Vec<Article>, String> {
         let conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at FROM articles")
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, feedback_helpful, feedback_reason, feedback_at FROM articles")
             .map_err(|e| e.to_string())?;
 
         let articles_iter = stmt
             .query_map([], |row| {
-                let cat_str: String = row.get(4)?;
-                let category = match cat_str.as_str() {
-                    "Rust" => ArticleCategory::Rust,
-                    "Android" => ArticleCategory::Android,
-                    "Tauri" => ArticleCategory::Tauri,
-                    "TypeScript" => ArticleCategory::TypeScript,
-                    "Web" => ArticleCategory::Web,
-                    "React" => ArticleCategory::React,
-                    "AI" => ArticleCategory::AI,
-                    "General" => ArticleCategory::General,
-                    _ => ArticleCategory::General, // Fallback
-                };
+                let tags_str: String = row.get(4)?;
+                let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
 
                 let feedback_helpful: Option<bool> = row.get(6).ok();
                 let feedback_reason: Option<String> = row.get(7).ok();
@@ -95,7 +86,7 @@ impl RecommendationState {
                     title: row.get(1)?,
                     summary: row.get(2)?,
                     url: row.get(3)?,
-                    category,
+                    tags,
                     published_at: row.get(5)?,
                     image_url: None,
                     author: None,
@@ -127,6 +118,37 @@ impl RecommendationState {
             .map_err(|e| e.to_string())?;
 
         Ok(feedback_iter.filter_map(|f| f.ok()).collect())
+    }
+
+    pub fn save_preferences(&self, prefs: UserPreferences, app_handle: &tauri::AppHandle) {
+        let app_dir = app_handle
+            .path()
+            .app_data_dir()
+            .unwrap_or(PathBuf::from("."));
+        if !app_dir.exists() {
+            let _ = fs::create_dir_all(&app_dir);
+        }
+        let prefs_path = app_dir.join("user_preferences.json");
+        let _ = fs::write(
+            prefs_path,
+            serde_json::to_string(&prefs).unwrap_or_default(),
+        );
+    }
+
+    pub fn load_preferences(&self, app_handle: &tauri::AppHandle) -> UserPreferences {
+        let app_dir = app_handle
+            .path()
+            .app_data_dir()
+            .unwrap_or(PathBuf::from("."));
+        let prefs_path = app_dir.join("user_preferences.json");
+        if prefs_path.exists() {
+            if let Ok(content) = fs::read_to_string(prefs_path) {
+                if let Ok(saved) = serde_json::from_str::<UserPreferences>(&content) {
+                    return saved;
+                }
+            }
+        }
+        UserPreferences::default()
     }
 }
 
@@ -205,26 +227,50 @@ pub async fn fetch_articles(
         }
     }
 
+    // Deduplication & Merge Logic
     let conn = state.pool.get().map_err(|e| e.to_string())?;
 
     for item in all_fetched {
-        let count: u32 = conn.execute(
-            "INSERT OR IGNORE INTO articles (id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        // Check if exists
+        let existing_tags_json: Option<String> = conn.query_row(
+            "SELECT tags FROM articles WHERE url = ?1",
+            rusqlite::params![item.url],
+            |row| row.get::<_, String>(0),
+        ).optional().map_err(|e| e.to_string())?;
+
+        let final_tags = if let Some(tags_str) = existing_tags_json {
+            // Merge
+            let mut current_tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
+            for new_tag in item.tags {
+                if !current_tags.contains(&new_tag) {
+                    current_tags.push(new_tag);
+                }
+            }
+            current_tags
+        } else {
+            // New
+            new_count += 1;
+            item.tags
+        };
+
+        let tags_json = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+
+        conn.execute(
+            "INSERT INTO articles (id, title, summary, url, tags, published_at, feedback_helpful, feedback_reason, feedback_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6", // Update tags and timestamp
             rusqlite::params![
                 item.id,
                 item.title,
                 item.summary,
                 item.url,
-                item.category.to_string(),
+                tags_json,
                 item.published_at,
                 item.feedback.as_ref().map(|f| f.is_helpful),
                 item.feedback.as_ref().map(|f| f.reason.clone()),
                 item.feedback.as_ref().map(|f| f.created_at.clone())
             ],
-        ).map_err(|e| e.to_string())? as u32;
-
-        new_count += count as usize;
+        ).map_err(|e| e.to_string())?;
     }
 
     Ok(new_count)
@@ -233,14 +279,16 @@ pub async fn fetch_articles(
 #[tauri::command]
 pub async fn get_recommended_articles(
     state: State<'_, RecommendationState>,
+    app: tauri::AppHandle,
 ) -> Result<Vec<Article>, String> {
     // DB Access must happen synchronously and drop connection before async AI calls
     let articles = state.get_articles_from_db()?;
 
     // 1. Calculate Scores & Sort
+    let prefs = state.load_preferences(&app);
     let mut scored_articles: Vec<(i32, Article)> = articles
         .into_iter()
-        .map(|a| (calculate_relevance_score(&a), a))
+        .map(|a| (calculate_relevance_score(&a, &prefs.interested_tags), a))
         .filter(|(score, _)| *score > -10)
         .collect();
 
@@ -265,7 +313,7 @@ pub async fn get_recommended_articles(
         let persona = state.persona.lock().unwrap().clone();
 
         // This await is now safe because we are not holding any DB locks/connections
-        recommend_with_gemini(candidates_for_ai, &persona, api_key).await
+        recommend_with_gemini(candidates_for_ai, &persona, &prefs.interested_tags, api_key).await
     } else {
         remaining.into_iter().take(4).collect()
     };
@@ -295,22 +343,51 @@ pub async fn submit_feedback(
         ).map_err(|e| e.to_string())?;
     } // conn dropped
 
-    // 2. Fetch all feedback (scoped)
-    let all_feedback = state.get_feedback_from_db()?;
 
-    // 3. AI Persona Update
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
-        let current_persona = state.persona.lock().unwrap().clone();
+        // Check feedback count
+        let conn = state.pool.get().map_err(|e| e.to_string())?;
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM articles WHERE feedback_helpful IS NOT NULL",
+            [],
+            |row| row.get(0),
+        ).unwrap_or(0);
 
-        // Async call safe here
-        if let Ok(new_persona) =
-            update_user_persona(&all_feedback, &current_persona, &api_key).await
-        {
-            *state.persona.lock().unwrap() = new_persona;
-            state.save_persona(&app);
+        if count > 0 && count % 3 == 0 {
+            println!("Triggering Persona Update (Feedback Count: {})", count);
+            let all_feedback = state.get_feedback_from_db()?;
+            let current_persona = state.persona.lock().unwrap().clone();
+
+            if let Ok(new_persona) =
+                update_user_persona(&all_feedback, &current_persona, &api_key).await
+            {
+                *state.persona.lock().unwrap() = new_persona;
+                state.save_persona(&app);
+            }
         }
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn save_user_interests(
+    categories: Vec<ArticleCategory>,
+    state: State<'_, RecommendationState>,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    let mut prefs = state.load_preferences(&app);
+    prefs.interested_tags = categories;
+    state.save_preferences(prefs, &app);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_user_interests(
+    state: State<'_, RecommendationState>,
+    app: tauri::AppHandle,
+) -> Result<Vec<ArticleCategory>, String> {
+    let prefs = state.load_preferences(&app);
+    Ok(prefs.interested_tags)
 }

@@ -47,13 +47,15 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     )
     .map_err(|e| e.to_string())?;
 
+
+
     conn.execute(
         "CREATE TABLE IF NOT EXISTS articles (
             id TEXT PRIMARY KEY,
             title TEXT,
             summary TEXT,
-            url TEXT,
-            category TEXT,
+            url TEXT UNIQUE,
+            tags TEXT,
             published_at TEXT,
             feedback_helpful BOOLEAN NULL,
             feedback_reason TEXT NULL,

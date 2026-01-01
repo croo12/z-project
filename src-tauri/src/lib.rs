@@ -6,7 +6,8 @@ pub mod modules;
 pub mod repositories;
 
 use features::recommendation::system::{
-    fetch_articles, get_recommended_articles, submit_feedback, RecommendationState,
+    fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
+    submit_feedback, RecommendationState,
 };
 use modules::{
     todo::{add_todo, delete_todo, get_todos, toggle_todo, TodoState},
@@ -50,7 +51,9 @@ pub fn run() {
             add_work_log,
             fetch_articles,
             get_recommended_articles,
-            submit_feedback
+            submit_feedback,
+            save_user_interests,
+            get_user_interests
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

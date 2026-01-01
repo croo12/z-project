@@ -19,7 +19,7 @@ export interface Article {
   title: string;
   summary: string;
   url: string;
-  category: ArticleCategory;
+  tags: ArticleCategory[];
   published_at: string;
   feedback?: Feedback | null;
   image_url?: string;
