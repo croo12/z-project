@@ -89,7 +89,10 @@ mod tests {
         let state = WorkLogState::new(repo);
 
         // Add
-        let logs = state.repository.create("Project X".to_string(), 2.5).unwrap();
+        let logs = state
+            .repository
+            .create("Project X".to_string(), 2.5)
+            .unwrap();
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].project, "Project X");
         assert_eq!(logs[0].hours, 2.5);

@@ -189,7 +189,9 @@ pub async fn submit_feedback(
     let timestamp = chrono::Local::now().to_rfc3339();
 
     // 1. Update via Repository
-    state.repository.update_feedback(&id, helpful, &reason, &timestamp)?;
+    state
+        .repository
+        .update_feedback(&id, helpful, &reason, &timestamp)?;
 
     // 2. Fetch all feedback via Repository
     let all_feedback = state.repository.get_feedback()?;

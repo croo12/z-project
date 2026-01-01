@@ -5,7 +5,13 @@ pub trait ArticleRepository: Send + Sync {
     fn create_bulk(&self, articles: Vec<Article>) -> Result<usize, String>;
     fn get_all(&self) -> Result<Vec<Article>, String>;
     fn get_feedback(&self) -> Result<Vec<Feedback>, String>;
-    fn update_feedback(&self, id: &str, helpful: bool, reason: &str, timestamp: &str) -> Result<(), String>;
+    fn update_feedback(
+        &self,
+        id: &str,
+        helpful: bool,
+        reason: &str,
+        timestamp: &str,
+    ) -> Result<(), String>;
 }
 
 pub struct SqliteArticleRepository {
@@ -121,7 +127,13 @@ impl ArticleRepository for SqliteArticleRepository {
         Ok(feedback_iter.filter_map(|f| f.ok()).collect())
     }
 
-    fn update_feedback(&self, id: &str, helpful: bool, reason: &str, timestamp: &str) -> Result<(), String> {
+    fn update_feedback(
+        &self,
+        id: &str,
+        helpful: bool,
+        reason: &str,
+        timestamp: &str,
+    ) -> Result<(), String> {
         let conn = self.pool.get().map_err(|e| e.to_string())?;
         conn.execute(
             "UPDATE articles SET feedback_helpful = ?1, feedback_reason = ?2, feedback_at = ?3 WHERE id = ?4",
