@@ -12,7 +12,9 @@ use modules::{
     todo::{add_todo, delete_todo, get_todos, toggle_todo, TodoState},
     worklog::{add_work_log, get_work_logs, WorkLogState},
 };
-use repositories::todo::SqliteTodoRepository;
+use repositories::{
+    article::SqliteArticleRepository, todo::SqliteTodoRepository, work_log::SqliteWorkLogRepository,
+};
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -27,12 +29,14 @@ pub fn run() {
 
             // Initialize Repositories
             let todo_repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
+            let work_log_repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+            let article_repo = Arc::new(SqliteArticleRepository::new(pool.clone()));
 
             // Initialize States
             app.manage(TodoState::new(todo_repo));
-            app.manage(WorkLogState::new(pool.clone()));
+            app.manage(WorkLogState::new(work_log_repo));
 
-            let rec_state = RecommendationState::new(pool.clone());
+            let rec_state = RecommendationState::new(article_repo);
             // Load Persona (JSON)
             rec_state.load_persona(app.handle());
             app.manage(rec_state);

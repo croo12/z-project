@@ -1,22 +1,22 @@
-use super::model::{Article, ArticleCategory, Feedback, UserPersona};
+use super::model::{Article, ArticleCategory, UserPersona};
 use super::service::{
     calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
 };
-use crate::db::DbPool;
+use crate::repositories::article::ArticleRepository;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{Manager, State};
 
 pub struct RecommendationState {
-    pub pool: DbPool,
+    pub repository: Arc<dyn ArticleRepository + Send + Sync>,
     pub persona: Mutex<UserPersona>,
 }
 
 impl RecommendationState {
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(repository: Arc<dyn ArticleRepository + Send + Sync>) -> Self {
         Self {
-            pool,
+            repository,
             persona: Mutex::new(UserPersona::default()),
         }
     }
@@ -50,83 +50,6 @@ impl RecommendationState {
                 }
             }
         }
-    }
-
-    // Refactored to separate DB logic from async calls to solve Send issues and allow easier testing
-    pub fn get_articles_from_db(&self) -> Result<Vec<Article>, String> {
-        let conn = self.pool.get().map_err(|e| e.to_string())?;
-
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at FROM articles")
-            .map_err(|e| e.to_string())?;
-
-        let articles_iter = stmt
-            .query_map([], |row| {
-                let cat_str: String = row.get(4)?;
-                let category = match cat_str.as_str() {
-                    "Rust" => ArticleCategory::Rust,
-                    "Android" => ArticleCategory::Android,
-                    "Tauri" => ArticleCategory::Tauri,
-                    "TypeScript" => ArticleCategory::TypeScript,
-                    "Web" => ArticleCategory::Web,
-                    "React" => ArticleCategory::React,
-                    "AI" => ArticleCategory::AI,
-                    "General" => ArticleCategory::General,
-                    _ => ArticleCategory::General, // Fallback
-                };
-
-                let feedback_helpful: Option<bool> = row.get(6).ok();
-                let feedback_reason: Option<String> = row.get(7).ok();
-                let feedback_at: Option<String> = row.get(8).ok();
-
-                let feedback = if let (Some(h), Some(r), Some(t)) =
-                    (feedback_helpful, feedback_reason, feedback_at)
-                {
-                    Some(Feedback {
-                        is_helpful: h,
-                        reason: r,
-                        created_at: t,
-                    })
-                } else {
-                    None
-                };
-
-                Ok(Article {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    summary: row.get(2)?,
-                    url: row.get(3)?,
-                    category,
-                    published_at: row.get(5)?,
-                    image_url: None,
-                    author: None,
-                    feedback,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut articles = Vec::new();
-        for a in articles_iter {
-            articles.push(a.map_err(|e| e.to_string())?);
-        }
-        Ok(articles)
-    }
-
-    pub fn get_feedback_from_db(&self) -> Result<Vec<Feedback>, String> {
-        let conn = self.pool.get().map_err(|e| e.to_string())?;
-        let mut stmt = conn.prepare("SELECT feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NOT NULL")
-             .map_err(|e| e.to_string())?;
-
-        let feedback_iter = stmt
-            .query_map([], |row| {
-                Ok(Feedback {
-                    is_helpful: row.get(0)?,
-                    reason: row.get(1)?,
-                    created_at: row.get(2)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-
-        Ok(feedback_iter.filter_map(|f| f.ok()).collect())
     }
 }
 
@@ -196,7 +119,6 @@ pub async fn fetch_articles(
         ("https://dev.to/feed", ArticleCategory::General),
     ];
 
-    let mut new_count = 0;
     let mut all_fetched = Vec::new();
 
     for (url, category) in feeds {
@@ -205,39 +127,18 @@ pub async fn fetch_articles(
         }
     }
 
-    let conn = state.pool.get().map_err(|e| e.to_string())?;
-
-    for item in all_fetched {
-        let count: u32 = conn.execute(
-            "INSERT OR IGNORE INTO articles (id, title, summary, url, category, published_at, feedback_helpful, feedback_reason, feedback_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            rusqlite::params![
-                item.id,
-                item.title,
-                item.summary,
-                item.url,
-                item.category.to_string(),
-                item.published_at,
-                item.feedback.as_ref().map(|f| f.is_helpful),
-                item.feedback.as_ref().map(|f| f.reason.clone()),
-                item.feedback.as_ref().map(|f| f.created_at.clone())
-            ],
-        ).map_err(|e| e.to_string())? as u32;
-
-        new_count += count as usize;
-    }
-
-    Ok(new_count)
+    // Delegate persistence to the Repository
+    state.repository.create_bulk(all_fetched)
 }
 
 #[tauri::command]
 pub async fn get_recommended_articles(
     state: State<'_, RecommendationState>,
 ) -> Result<Vec<Article>, String> {
-    // DB Access must happen synchronously and drop connection before async AI calls
-    let articles = state.get_articles_from_db()?;
+    // 1. Fetch from Repository
+    let articles = state.repository.get_all()?;
 
-    // 1. Calculate Scores & Sort
+    // 2. Calculate Scores & Sort
     let mut scored_articles: Vec<(i32, Article)> = articles
         .into_iter()
         .map(|a| (calculate_relevance_score(&a), a))
@@ -253,11 +154,11 @@ pub async fn get_recommended_articles(
 
     let top_candidates: Vec<Article> = scored_articles.into_iter().map(|(_, a)| a).collect();
 
-    // 2. Rule-based: Top 3 (Highest Scored + Newest)
+    // 3. Rule-based: Top 3 (Highest Scored + Newest)
     let top_3: Vec<Article> = top_candidates.iter().take(3).cloned().collect();
     let remaining: Vec<Article> = top_candidates.iter().skip(3).cloned().collect();
 
-    // 3. AI-based: Next 4 from remaining
+    // 4. AI-based: Next 4 from remaining
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
 
     let ai_picks = if !api_key.is_empty() && !remaining.is_empty() {
@@ -270,7 +171,7 @@ pub async fn get_recommended_articles(
         remaining.into_iter().take(4).collect()
     };
 
-    // 4. Combine
+    // 5. Combine
     let mut result = top_3;
     result.extend(ai_picks);
 
@@ -285,18 +186,13 @@ pub async fn submit_feedback(
     state: State<'_, RecommendationState>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
-    // 1. Update DB (scoped)
-    {
-        let conn = state.pool.get().map_err(|e| e.to_string())?;
-        let timestamp = chrono::Local::now().to_rfc3339();
-        conn.execute(
-            "UPDATE articles SET feedback_helpful = ?1, feedback_reason = ?2, feedback_at = ?3 WHERE id = ?4",
-            rusqlite::params![helpful, reason, timestamp, id],
-        ).map_err(|e| e.to_string())?;
-    } // conn dropped
+    let timestamp = chrono::Local::now().to_rfc3339();
 
-    // 2. Fetch all feedback (scoped)
-    let all_feedback = state.get_feedback_from_db()?;
+    // 1. Update via Repository
+    state.repository.update_feedback(&id, helpful, &reason, &timestamp)?;
+
+    // 2. Fetch all feedback via Repository
+    let all_feedback = state.repository.get_feedback()?;
 
     // 3. AI Persona Update
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();

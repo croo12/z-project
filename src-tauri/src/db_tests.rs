@@ -3,7 +3,9 @@ mod tests {
     use crate::features::recommendation::system::RecommendationState;
     use crate::modules::todo::TodoState;
     use crate::modules::worklog::WorkLogState;
+    use crate::repositories::article::SqliteArticleRepository;
     use crate::repositories::todo::SqliteTodoRepository;
+    use crate::repositories::work_log::SqliteWorkLogRepository;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
     use std::sync::Arc;
@@ -83,10 +85,11 @@ mod tests {
     #[test]
     fn test_worklog_crud() {
         let pool = setup_memory_db();
-        let state = WorkLogState::new(pool.clone());
+        let repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+        let state = WorkLogState::new(repo);
 
         // Add
-        let logs = state.add("Project X".to_string(), 2.5).unwrap();
+        let logs = state.repository.create("Project X".to_string(), 2.5).unwrap();
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].project, "Project X");
         assert_eq!(logs[0].hours, 2.5);
@@ -104,10 +107,11 @@ mod tests {
              rusqlite::params!["1", "Test Article", "Summary", "http://example.com", "Rust", "2023-01-01"],
          ).unwrap();
 
-        let state = RecommendationState::new(pool.clone());
+        let repo = Arc::new(SqliteArticleRepository::new(pool.clone()));
+        let state = RecommendationState::new(repo);
 
-        // Test Get (Internal DB method)
-        let articles = state.get_articles_from_db().unwrap();
+        // Test Get (Internal DB method via repository)
+        let articles = state.repository.get_all().unwrap();
         assert!(!articles.is_empty());
         assert_eq!(articles[0].title, "Test Article");
     }
