@@ -3,6 +3,7 @@ pub mod db;
 mod db_tests;
 pub mod features;
 pub mod modules;
+pub mod repositories;
 
 use features::recommendation::system::{
     fetch_articles, get_recommended_articles, submit_feedback, RecommendationState,
@@ -11,6 +12,8 @@ use modules::{
     todo::{add_todo, delete_todo, get_todos, toggle_todo, TodoState},
     worklog::{add_work_log, get_work_logs, WorkLogState},
 };
+use repositories::todo::SqliteTodoRepository;
+use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -22,8 +25,11 @@ pub fn run() {
             // Initialize DB
             let pool = db::init_db(app.handle()).expect("Failed to initialize database");
 
+            // Initialize Repositories
+            let todo_repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
+
             // Initialize States
-            app.manage(TodoState::new(pool.clone()));
+            app.manage(TodoState::new(todo_repo));
             app.manage(WorkLogState::new(pool.clone()));
 
             let rec_state = RecommendationState::new(pool.clone());

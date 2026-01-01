@@ -3,8 +3,10 @@ mod tests {
     use crate::features::recommendation::system::RecommendationState;
     use crate::modules::todo::TodoState;
     use crate::modules::worklog::WorkLogState;
+    use crate::repositories::todo::SqliteTodoRepository;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
+    use std::sync::Arc;
 
     fn setup_memory_db() -> Pool<SqliteConnectionManager> {
         // Use shared cache to ensure all connections in the pool see the same in-memory DB
@@ -58,7 +60,8 @@ mod tests {
     #[test]
     fn test_todo_crud() {
         let pool = setup_memory_db();
-        let state = TodoState::new(pool.clone());
+        let repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
+        let state = TodoState::new(repo);
 
         // Add
         let todos = state.add("Test Todo".to_string()).unwrap();
