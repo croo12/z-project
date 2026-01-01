@@ -302,7 +302,8 @@ pub async fn submit_feedback(
             })
             .map_err(|e| e.to_string())?;
 
-        let all_feedback: Vec<Feedback> = feedback_iter.map(|f| f.unwrap()).collect(); // Unwrap safe here for simplicity or handle error
+        // Filter out any errors during mapping to avoid panics
+        let all_feedback: Vec<Feedback> = feedback_iter.filter_map(|f| f.ok()).collect();
 
         let current_persona = state.persona.lock().unwrap().clone();
         // Call AI service

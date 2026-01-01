@@ -18,6 +18,8 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     }
 
     let db_path = app_dir.join("app.db");
+    println!("Database path: {:?}", db_path);
+
     let manager = SqliteConnectionManager::file(db_path);
     let pool = Pool::new(manager).map_err(|e| e.to_string())?;
 
