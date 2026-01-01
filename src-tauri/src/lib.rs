@@ -1,20 +1,24 @@
+pub mod features;
 pub mod db;
 #[cfg(test)]
 mod db_tests;
-pub mod features;
-pub mod modules;
-pub mod repositories;
 
+// Re-exports for easier access if needed, or update consumers to use features::*
 use features::recommendation::system::{
     fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
     submit_feedback, RecommendationState,
 };
-use modules::{
-    todo::{add_todo, delete_todo, get_todos, toggle_todo, TodoState},
-    worklog::{add_work_log, get_work_logs, WorkLogState},
+use features::todo::{
+    commands::{add_todo, delete_todo, get_todos, toggle_todo},
+    repository::SqliteTodoRepository,
+    service::TodoState,
 };
-use repositories::todo::SqliteTodoRepository;
-use repositories::worklog::SqliteWorkLogRepository;
+use features::worklog::{
+    commands::{add_work_log, get_work_logs},
+    repository::SqliteWorkLogRepository,
+    service::WorkLogState,
+};
+
 use std::sync::Arc;
 use tauri::Manager;
 
