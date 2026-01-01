@@ -17,5 +17,4 @@ jobs:
         with:
           gemini-key: ${{ secrets.GEMINI_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          model: "gemini-1.5-flash"
-          review_comment_lgtm: false
+          model: "gemini-3.0-flash"
