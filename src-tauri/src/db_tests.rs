@@ -4,6 +4,7 @@ mod tests {
     use crate::modules::todo::TodoState;
     use crate::modules::worklog::WorkLogState;
     use crate::repositories::todo::SqliteTodoRepository;
+    use crate::repositories::worklog::SqliteWorkLogRepository;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
     use std::sync::Arc;
@@ -83,7 +84,8 @@ mod tests {
     #[test]
     fn test_worklog_crud() {
         let pool = setup_memory_db();
-        let state = WorkLogState::new(pool.clone());
+        let repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+        let state = WorkLogState::new(repo);
 
         // Add
         let logs = state.add("Project X".to_string(), 2.5).unwrap();
