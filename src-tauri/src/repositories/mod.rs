@@ -1,3 +1,3 @@
 pub mod article;
 pub mod todo;
-pub mod work_log;
+pub mod worklog;

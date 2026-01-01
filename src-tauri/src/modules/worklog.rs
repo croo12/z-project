@@ -1,4 +1,4 @@
-use crate::repositories::work_log::WorkLogRepository;
+use crate::repositories::worklog::WorkLogRepository;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::State;
@@ -12,12 +12,12 @@ pub struct WorkLog {
 }
 
 pub struct WorkLogState {
-    pub repository: Arc<dyn WorkLogRepository + Send + Sync>,
+    pub repo: Arc<dyn WorkLogRepository + Send + Sync>,
 }
 
 impl WorkLogState {
-    pub fn new(repository: Arc<dyn WorkLogRepository + Send + Sync>) -> Self {
-        Self { repository }
+    pub fn new(repo: Arc<dyn WorkLogRepository + Send + Sync>) -> Self {
+        Self { repo }
     }
 }
 
@@ -25,7 +25,7 @@ impl WorkLogState {
 
 #[tauri::command]
 pub fn get_work_logs(state: State<WorkLogState>) -> Result<Vec<WorkLog>, String> {
-    state.repository.get_all()
+    state.repo.get_all()
 }
 
 #[tauri::command]
@@ -34,5 +34,6 @@ pub fn add_work_log(
     hours: f32,
     state: State<WorkLogState>,
 ) -> Result<Vec<WorkLog>, String> {
-    state.repository.create(project, hours)
+    state.repo.create(project, hours)?;
+    state.repo.get_all()
 }

@@ -1,9 +1,9 @@
 use crate::db::DbPool;
 use crate::modules::worklog::WorkLog;
 
-pub trait WorkLogRepository: Send + Sync {
-    fn create(&self, project: String, hours: f32) -> Result<Vec<WorkLog>, String>;
+pub trait WorkLogRepository {
     fn get_all(&self) -> Result<Vec<WorkLog>, String>;
+    fn create(&self, project: String, hours: f32) -> Result<(), String>;
 }
 
 pub struct SqliteWorkLogRepository {
@@ -17,22 +17,6 @@ impl SqliteWorkLogRepository {
 }
 
 impl WorkLogRepository for SqliteWorkLogRepository {
-    fn create(&self, project: String, hours: f32) -> Result<Vec<WorkLog>, String> {
-        let conn = self.pool.get().map_err(|e| e.to_string())?;
-        let date = chrono::Local::now().format("%Y-%m-%d").to_string();
-
-        // Cast f32 to f64 for SQLite REAL compatibility
-        let hours_f64 = hours as f64;
-
-        conn.execute(
-            "INSERT INTO work_logs (project, hours, date) VALUES (?1, ?2, ?3)",
-            rusqlite::params![project, hours_f64, date],
-        )
-        .map_err(|e| e.to_string())?;
-
-        self.get_all()
-    }
-
     fn get_all(&self) -> Result<Vec<WorkLog>, String> {
         let conn = self.pool.get().map_err(|e| e.to_string())?;
         let mut stmt = conn
@@ -56,5 +40,20 @@ impl WorkLogRepository for SqliteWorkLogRepository {
             logs.push(log.map_err(|e| e.to_string())?);
         }
         Ok(logs)
+    }
+
+    fn create(&self, project: String, hours: f32) -> Result<(), String> {
+        let conn = self.pool.get().map_err(|e| e.to_string())?;
+        let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+
+        // Cast f32 to f64 for SQLite REAL compatibility
+        let hours_f64 = hours as f64;
+
+        conn.execute(
+            "INSERT INTO work_logs (project, hours, date) VALUES (?1, ?2, ?3)",
+            rusqlite::params![project, hours_f64, date],
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(())
     }
 }

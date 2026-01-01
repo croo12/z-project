@@ -5,7 +5,7 @@ mod tests {
     use crate::modules::worklog::WorkLogState;
     use crate::repositories::article::SqliteArticleRepository;
     use crate::repositories::todo::SqliteTodoRepository;
-    use crate::repositories::work_log::SqliteWorkLogRepository;
+    use crate::repositories::worklog::SqliteWorkLogRepository;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
     use std::sync::Arc;
@@ -89,10 +89,12 @@ mod tests {
         let state = WorkLogState::new(repo);
 
         // Add
-        let logs = state
-            .repository
+        state
+            .repo
             .create("Project X".to_string(), 2.5)
             .unwrap();
+        let logs = state.repo.get_all().unwrap();
+
         assert_eq!(logs.len(), 1);
         assert_eq!(logs[0].project, "Project X");
         assert_eq!(logs[0].hours, 2.5);

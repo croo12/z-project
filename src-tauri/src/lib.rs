@@ -13,7 +13,7 @@ use modules::{
     worklog::{add_work_log, get_work_logs, WorkLogState},
 };
 use repositories::{
-    article::SqliteArticleRepository, todo::SqliteTodoRepository, work_log::SqliteWorkLogRepository,
+    article::SqliteArticleRepository, todo::SqliteTodoRepository, worklog::SqliteWorkLogRepository,
 };
 use std::sync::Arc;
 use tauri::Manager;
@@ -29,12 +29,12 @@ pub fn run() {
 
             // Initialize Repositories
             let todo_repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
-            let work_log_repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+            let worklog_repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
             let article_repo = Arc::new(SqliteArticleRepository::new(pool.clone()));
 
             // Initialize States
             app.manage(TodoState::new(todo_repo));
-            app.manage(WorkLogState::new(work_log_repo));
+            app.manage(WorkLogState::new(worklog_repo));
 
             let rec_state = RecommendationState::new(article_repo);
             // Load Persona (JSON)
