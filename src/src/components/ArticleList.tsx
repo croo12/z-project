@@ -28,7 +28,6 @@ export default function ArticleList({
   const [filter, setFilter] = useState<ArticleCategory | "All">("All");
   const [loading, setLoading] = useState(false);
   const [feedbackingId, setFeedbackingId] = useState<string | null>(null);
-  const [reason, setReason] = useState("");
 
   const filtered = useMemo(() => {
     return filter === "All"
@@ -47,17 +46,12 @@ export default function ArticleList({
   }, [onRefresh]);
 
   const handleSubmitFeedback = useCallback(
-    async (id: string, helpful: boolean) => {
-      if (!reason.trim()) {
-        alert("Please provide a reason.");
-        return;
-      }
+    async (id: string, helpful: boolean, reason: string) => {
       await invoke("submit_feedback", { id, helpful, reason });
       setFeedbackingId(null);
-      setReason("");
       onFeedbackUpdate();
     },
-    [reason, onFeedbackUpdate]
+    [onFeedbackUpdate]
   );
 
   return (
@@ -97,10 +91,8 @@ export default function ArticleList({
           <ArticleCard
             key={article.id}
             article={article}
-            feedbackingId={feedbackingId}
-            reason={reason}
+            isFeedbacking={feedbackingId === article.id}
             onSetFeedbackingId={setFeedbackingId}
-            onSetReason={setReason}
             onSubmitFeedback={handleSubmitFeedback}
           />
         ))}
@@ -129,21 +121,18 @@ function getCategoryColor(cat: ArticleCategory): string {
 
 interface ArticleCardProps {
   article: Article;
-  feedbackingId: string | null;
-  reason: string;
+  isFeedbacking: boolean;
   onSetFeedbackingId: (id: string | null) => void;
-  onSetReason: (reason: string) => void;
-  onSubmitFeedback: (id: string, helpful: boolean) => void;
+  onSubmitFeedback: (id: string, helpful: boolean, reason: string) => void;
 }
 
 const ArticleCard = memo(function ArticleCard({
   article,
-  feedbackingId,
-  reason,
+  isFeedbacking,
   onSetFeedbackingId,
-  onSetReason,
   onSubmitFeedback,
 }: ArticleCardProps) {
+  // Optimization: reason state removed from props to prevent re-renders of all cards on keystroke
   return (
     <div
       className="card article-item"
@@ -205,27 +194,13 @@ const ArticleCard = memo(function ArticleCard({
             {article.feedback.is_helpful ? "👍 Helpful" : "👎 Not Helpful"}(
             {article.feedback.reason})
           </small>
-        ) : feedbackingId === article.id ? (
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-            <input
-              value={reason}
-              onChange={(e) => onSetReason(e.target.value)}
-              placeholder="Reason..."
-              autoFocus
-            />
-            <button onClick={() => onSubmitFeedback(article.id, true)}>
-              👍
-            </button>
-            <button onClick={() => onSubmitFeedback(article.id, false)}>
-              👎
-            </button>
-            <button
-              onClick={() => onSetFeedbackingId(null)}
-              style={{ background: "#888" }}
-            >
-              Cancel
-            </button>
-          </div>
+        ) : isFeedbacking ? (
+          <FeedbackForm
+            onSubmit={(helpful, reason) =>
+              onSubmitFeedback(article.id, helpful, reason)
+            }
+            onCancel={() => onSetFeedbackingId(null)}
+          />
         ) : (
           <button
             onClick={() => onSetFeedbackingId(article.id)}
@@ -244,3 +219,48 @@ const ArticleCard = memo(function ArticleCard({
     </div>
   );
 });
+
+interface FeedbackFormProps {
+  onSubmit: (helpful: boolean, reason: string) => void;
+  onCancel: () => void;
+}
+
+function FeedbackForm({ onSubmit, onCancel }: FeedbackFormProps) {
+  const [reason, setReason] = useState("");
+  const [showReasonError, setShowReasonError] = useState(false);
+
+  const handleSubmit = (helpful: boolean) => {
+    if (!reason.trim()) {
+      setShowReasonError(true);
+      return;
+    }
+    setShowReasonError(false);
+    onSubmit(helpful, reason);
+  };
+
+  return (
+    <>
+      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+        <input
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            setShowReasonError(false);
+          }}
+          placeholder="Reason..."
+          autoFocus
+        />
+        <button onClick={() => handleSubmit(true)}>👍</button>
+        <button onClick={() => handleSubmit(false)}>👎</button>
+        <button onClick={onCancel} style={{ background: "#888" }}>
+          Cancel
+        </button>
+      </div>
+      {showReasonError && (
+        <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+          Please provide a reason.
+        </p>
+      )}
+    </>
+  );
+}
