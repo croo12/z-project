@@ -47,6 +47,8 @@ mod tests {
                 url TEXT UNIQUE,
                 tags TEXT,
                 published_at TEXT,
+                image_url TEXT NULL,
+                author TEXT NULL,
                 feedback_helpful BOOLEAN NULL,
                 feedback_reason TEXT NULL,
                 feedback_at TEXT NULL

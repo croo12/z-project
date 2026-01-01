@@ -57,7 +57,7 @@ impl RecommendationState {
     pub fn get_articles_from_db(&self) -> Result<Vec<Article>, String> {
         let conn = self.pool.get().map_err(|e| e.to_string())?;
 
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, feedback_helpful, feedback_reason, feedback_at FROM articles")
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles")
             .map_err(|e| e.to_string())?;
 
         let articles_iter = stmt
@@ -69,9 +69,11 @@ impl RecommendationState {
                         Default::default()
                     });
 
-                let feedback_helpful: Option<bool> = row.get(6).ok();
-                let feedback_reason: Option<String> = row.get(7).ok();
-                let feedback_at: Option<String> = row.get(8).ok();
+                let image_url: Option<String> = row.get(6).ok();
+                let author: Option<String> = row.get(7).ok();
+                let feedback_helpful: Option<bool> = row.get(8).ok();
+                let feedback_reason: Option<String> = row.get(9).ok();
+                let feedback_at: Option<String> = row.get(10).ok();
 
                 let feedback = if let (Some(h), Some(r), Some(t)) =
                     (feedback_helpful, feedback_reason, feedback_at)
@@ -92,8 +94,8 @@ impl RecommendationState {
                     url: row.get(3)?,
                     tags,
                     published_at: row.get(5)?,
-                    image_url: None,
-                    author: None,
+                    image_url,
+                    author,
                     feedback,
                 })
             })
@@ -157,9 +159,7 @@ impl RecommendationState {
 }
 
 #[tauri::command]
-pub async fn fetch_articles(
-    state: State<'_, RecommendationState>,
-) -> Result<usize, String> {
+pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usize, String> {
     let feeds = vec![
         // Rust
         ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
@@ -263,9 +263,9 @@ pub async fn fetch_articles(
         let tags_json = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
 
         conn.execute(
-            "INSERT INTO articles (id, title, summary, url, tags, published_at, feedback_helpful, feedback_reason, feedback_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-             ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6", // Update tags and timestamp
+            "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+             ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6, image_url = ?7, author = ?8", // Update tags, timestamp, image_url, author
             rusqlite::params![
                 item.id,
                 item.title,
@@ -273,6 +273,8 @@ pub async fn fetch_articles(
                 item.url,
                 tags_json,
                 item.published_at,
+                item.image_url,
+                item.author,
                 item.feedback.as_ref().map(|f| f.is_helpful),
                 item.feedback.as_ref().map(|f| f.reason.clone()),
                 item.feedback.as_ref().map(|f| f.created_at.clone())
