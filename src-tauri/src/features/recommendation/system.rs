@@ -224,8 +224,20 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
     let mut new_count = 0;
     let mut all_fetched = Vec::new();
 
+    // Optimization: Reuse client and fetch concurrently
+    let client = reqwest::Client::new();
+    let mut handles = Vec::new();
+
     for (url, category) in feeds {
-        if let Ok(fetched) = fetch_feed(url, category).await {
+        let client = client.clone();
+        let url = url.to_string();
+        handles.push(tauri::async_runtime::spawn(async move {
+            fetch_feed(&url, category, &client).await
+        }));
+    }
+
+    for handle in handles {
+        if let Ok(Ok(fetched)) = handle.await {
             all_fetched.extend(fetched);
         }
     }
