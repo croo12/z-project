@@ -8,9 +8,11 @@ use features::recommendation::commands::{
     submit_feedback, RecommendationState,
 };
 use features::recommendation::repository::SqliteRecommendationRepository;
-use features::todo::commands::{add_todo, delete_todo, get_todos, toggle_todo, TodoState};
+use features::todo::commands::{add_todo, delete_todo, get_todos, toggle_todo};
+use features::todo::service::TodoState;
 use features::todo::repository::SqliteTodoRepository;
-use features::worklog::commands::{add_work_log, get_work_logs, WorkLogState};
+use features::worklog::commands::{add_work_log, get_work_logs};
+use features::worklog::service::WorkLogState;
 use features::worklog::repository::SqliteWorkLogRepository;
 
 use std::sync::Arc;

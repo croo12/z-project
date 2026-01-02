@@ -1,5 +1,5 @@
-use crate::db::DbPool;
 use super::model::Todo;
+use crate::db::DbPool;
 
 pub trait TodoRepository {
     fn get_all(&self) -> Result<Vec<Todo>, String>;
