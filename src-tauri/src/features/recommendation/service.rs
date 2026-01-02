@@ -1,14 +1,6 @@
 use super::model::{Article, ArticleCategory, Feedback, UserPersona};
 use reqwest;
 use std::io::Cursor;
-use std::sync::OnceLock;
-
-static RE_IMG: OnceLock<regex::Regex> = OnceLock::new();
-static RE_RUST: OnceLock<regex::Regex> = OnceLock::new();
-static RE_REACT: OnceLock<regex::Regex> = OnceLock::new();
-static RE_ANDROID: OnceLock<regex::Regex> = OnceLock::new();
-static RE_TAURI: OnceLock<regex::Regex> = OnceLock::new();
-static RE_AI: OnceLock<regex::Regex> = OnceLock::new();
 
 /// Calculates a relevance score for an article to filter out noise (e.g., Finance, Politics).
 /// Positive score: Keep/Promote. Negative score: Demote/Discard.
