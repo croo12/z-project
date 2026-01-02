@@ -10,6 +10,9 @@ target/
 # Tauri
 src-tauri/target/
 src-tauri/gen/
+!src-tauri/gen/android/
+src-tauri/gen/android/app/build/
+src-tauri/gen/android/.gradle/
 
 # Editor
 .vscode/
