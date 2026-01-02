@@ -39,7 +39,7 @@ jobs:
           npm install --prefix src
 
       - name: Build Android App
-        run: npx tauri android build --apk true
+        run: npx tauri android build --apk true --debug
         env:
           NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
 
@@ -52,5 +52,5 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         with:
           files: |
-            src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk
+            src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk
 
