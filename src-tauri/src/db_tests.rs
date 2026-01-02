@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use crate::features::recommendation::system::RecommendationState;
-    use crate::modules::todo::TodoState;
-    use crate::modules::worklog::WorkLogState;
-    use crate::repositories::todo::SqliteTodoRepository;
-    use crate::repositories::worklog::SqliteWorkLogRepository;
+    use crate::features::todo::repository::SqliteTodoRepository;
+    use crate::features::todo::service::TodoState;
+    use crate::features::worklog::repository::SqliteWorkLogRepository;
+    use crate::features::worklog::service::WorkLogState;
     use r2d2::Pool;
     use r2d2_sqlite::SqliteConnectionManager;
     use std::sync::Arc;
