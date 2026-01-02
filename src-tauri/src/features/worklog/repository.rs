@@ -1,5 +1,5 @@
-use crate::db::DbPool;
 use super::model::WorkLog;
+use crate::db::DbPool;
 
 pub trait WorkLogRepository {
     fn get_all(&self) -> Result<Vec<WorkLog>, String>;

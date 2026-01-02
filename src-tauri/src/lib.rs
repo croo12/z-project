@@ -1,7 +1,7 @@
-pub mod features;
 pub mod db;
 #[cfg(test)]
 mod db_tests;
+pub mod features;
 
 // Re-exports for easier access if needed, or update consumers to use features::*
 use features::recommendation::system::{
