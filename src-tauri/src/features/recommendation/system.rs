@@ -237,8 +237,16 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
     }
 
     for handle in handles {
-        if let Ok(Ok(fetched)) = handle.await {
-            all_fetched.extend(fetched);
+        match handle.await {
+            Ok(Ok(fetched)) => {
+                all_fetched.extend(fetched);
+            }
+            Ok(Err(e)) => {
+                eprintln!("Error fetching feed: {}", e);
+            }
+            Err(e) => {
+                eprintln!("Task failed to complete: {}", e);
+            }
         }
     }
 

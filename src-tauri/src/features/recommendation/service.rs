@@ -115,7 +115,8 @@ pub async fn fetch_feed(
     source_category: ArticleCategory,
     client: &reqwest::Client,
 ) -> Result<Vec<Article>, String> {
-    let content = client.get(url)
+    let content = client
+        .get(url)
         .send()
         .await
         .map_err(|e| e.to_string())?
@@ -126,7 +127,8 @@ pub async fn fetch_feed(
 
     // Optimized: Use OnceLock to compile regexes only once
     static RE_IMG: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-    let re_img = RE_IMG.get_or_init(|| regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap());
+    let re_img =
+        RE_IMG.get_or_init(|| regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap());
 
     static RE_RUST: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_rust = RE_RUST.get_or_init(|| regex::Regex::new(r"(?i)\brust\b").unwrap());
@@ -141,7 +143,8 @@ pub async fn fetch_feed(
     let re_tauri = RE_TAURI.get_or_init(|| regex::Regex::new(r"(?i)\btauri\b").unwrap());
 
     static RE_AI: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
-    let re_ai = RE_AI.get_or_init(|| regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap());
+    let re_ai =
+        RE_AI.get_or_init(|| regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap());
 
     let articles = channel
         .items()
