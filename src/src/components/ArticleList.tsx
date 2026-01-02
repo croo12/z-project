@@ -1,5 +1,4 @@
-import { useState, useMemo, memo, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState, useMemo, memo } from "react";
 import { ArticleCategory } from "../types";
 import type { Article } from "../types";
 import "../App.css";
@@ -9,16 +8,17 @@ const CATEGORIES: ArticleCategory[] = Object.values(ArticleCategory);
 interface Props {
   articles: Article[];
   onRefresh: () => void;
-  onFeedbackUpdate: () => void;
+  loading: boolean;
+  onSubmitFeedback: (id: string, helpful: boolean, reason: string) => void;
 }
 
 export default function ArticleList({
   articles,
   onRefresh,
-  onFeedbackUpdate,
+  loading,
+  onSubmitFeedback,
 }: Props) {
   const [filter, setFilter] = useState<ArticleCategory | "All">("All");
-  const [loading, setLoading] = useState(false);
   const [feedbackingId, setFeedbackingId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -27,24 +27,10 @@ export default function ArticleList({
       : articles.filter((a) => a.tags.includes(filter));
   }, [articles, filter]);
 
-  const handleRefresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      await invoke("fetch_articles");
-      onRefresh();
-    } finally {
-      setLoading(false);
-    }
-  }, [onRefresh]);
-
-  const handleSubmitFeedback = useCallback(
-    async (id: string, helpful: boolean, reason: string) => {
-      await invoke("submit_feedback", { id, helpful, reason });
-      setFeedbackingId(null);
-      onFeedbackUpdate();
-    },
-    [onFeedbackUpdate]
-  );
+  const handleFeedbackSubmit = (id: string, helpful: boolean, reason: string) => {
+    onSubmitFeedback(id, helpful, reason);
+    setFeedbackingId(null);
+  };
 
   return (
     <div className="article-list-container">
@@ -57,7 +43,7 @@ export default function ArticleList({
           marginBottom: "1rem",
         }}
       >
-        <button onClick={handleRefresh} disabled={loading}>
+        <button onClick={onRefresh} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh RSS"}
         </button>
         <button
@@ -85,7 +71,7 @@ export default function ArticleList({
             article={article}
             isFeedbacking={feedbackingId === article.id}
             onSetFeedbackingId={setFeedbackingId}
-            onSubmitFeedback={handleSubmitFeedback}
+            onSubmitFeedback={handleFeedbackSubmit}
           />
         ))}
         {filtered.length === 0 && <p>No articles found.</p>}

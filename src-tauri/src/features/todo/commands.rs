@@ -1,14 +1,7 @@
-use crate::repositories::todo::TodoRepository;
-use serde::{Deserialize, Serialize};
+use super::model::Todo;
+use super::repository::TodoRepository;
 use std::sync::Arc;
 use tauri::State;
-
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct Todo {
-    pub id: u32,
-    pub text: String,
-    pub completed: bool,
-}
 
 pub struct TodoState {
     pub repo: Arc<dyn TodoRepository + Send + Sync>,

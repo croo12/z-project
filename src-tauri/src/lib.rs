@@ -2,19 +2,17 @@ pub mod db;
 #[cfg(test)]
 mod db_tests;
 pub mod features;
-pub mod modules;
-pub mod repositories;
 
-use features::recommendation::system::{
+use features::recommendation::commands::{
     fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
     submit_feedback, RecommendationState,
 };
-use modules::{
-    todo::{add_todo, delete_todo, get_todos, toggle_todo, TodoState},
-    worklog::{add_work_log, get_work_logs, WorkLogState},
-};
-use repositories::todo::SqliteTodoRepository;
-use repositories::worklog::SqliteWorkLogRepository;
+use features::recommendation::repository::SqliteRecommendationRepository;
+use features::todo::commands::{add_todo, delete_todo, get_todos, toggle_todo, TodoState};
+use features::todo::repository::SqliteTodoRepository;
+use features::worklog::commands::{add_work_log, get_work_logs, WorkLogState};
+use features::worklog::repository::SqliteWorkLogRepository;
+
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -30,12 +28,13 @@ pub fn run() {
             // Initialize Repositories
             let todo_repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
             let worklog_repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+            let rec_repo = Arc::new(SqliteRecommendationRepository::new(pool.clone()));
 
             // Initialize States
             app.manage(TodoState::new(todo_repo));
             app.manage(WorkLogState::new(worklog_repo));
 
-            let rec_state = RecommendationState::new(pool.clone());
+            let rec_state = RecommendationState::new(rec_repo);
             // Load Persona (JSON)
             rec_state.load_persona(app.handle());
             app.manage(rec_state);

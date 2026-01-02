@@ -1,0 +1,62 @@
+import React, { useState } from "react";
+import type { WorkLog } from "../../hooks/useWorkLogs";
+
+interface WorkLogListProps {
+  logs: WorkLog[];
+  onAdd: (project: string, hours: number) => void;
+}
+
+export default function WorkLogList({ logs, onAdd }: WorkLogListProps) {
+  const [workProject, setWorkProject] = useState("");
+  const [workHours, setWorkHours] = useState("");
+
+  const handleAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workProject || !workHours) return;
+    onAdd(workProject, parseFloat(workHours));
+    setWorkProject("");
+    setWorkHours("");
+  };
+
+  return (
+    <section>
+      <h2>Work Log</h2>
+      <form onSubmit={handleAdd}>
+        <input
+          value={workProject}
+          onChange={(e) => setWorkProject(e.target.value)}
+          placeholder="Project"
+          aria-label="Project name"
+        />
+        <input
+          type="number"
+          value={workHours}
+          onChange={(e) => setWorkHours(e.target.value)}
+          placeholder="h"
+          step="0.5"
+          style={{ maxWidth: "60px" }}
+          aria-label="Hours worked"
+        />
+        <button type="submit">Log</button>
+      </form>
+      <div id="work-list">
+        {logs.length === 0 && (
+          <div
+            className="empty-state"
+            style={{ textAlign: "center", padding: "1rem", color: "#888" }}
+          >
+            <p>No logs yet 📝</p>
+          </div>
+        )}
+        {logs.map((log) => (
+          <div key={log.id} className="card log-item">
+            <span className="log-project">{log.project}</span>
+            <span className="log-details">
+              {log.hours}h ({log.date})
+            </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}

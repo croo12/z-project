@@ -39,7 +39,8 @@ describe("ArticleList", () => {
       <ArticleList
         articles={mockArticles}
         onRefresh={() => {}}
-        onFeedbackUpdate={() => {}}
+        loading={false}
+        onSubmitFeedback={() => {}}
       />
     );
     expect(screen.getByText("Test Article 1")).toBeDefined();
@@ -51,7 +52,8 @@ describe("ArticleList", () => {
       <ArticleList
         articles={mockArticles}
         onRefresh={() => {}}
-        onFeedbackUpdate={() => {}}
+        loading={false}
+        onSubmitFeedback={() => {}}
       />
     );
 
@@ -68,7 +70,8 @@ describe("ArticleList", () => {
       <ArticleList
         articles={mockArticles}
         onRefresh={() => {}}
-        onFeedbackUpdate={() => {}}
+        loading={false}
+        onSubmitFeedback={() => {}}
       />
     );
 
