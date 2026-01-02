@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::super::model::Todo;
+    use crate::features::todo::model::Todo;
 
     #[test]
     fn test_todo_struct() {
