@@ -1,6 +1,14 @@
 use super::model::{Article, ArticleCategory, Feedback, UserPersona};
 use reqwest;
 use std::io::Cursor;
+use std::sync::OnceLock;
+
+static RE_IMG: OnceLock<regex::Regex> = OnceLock::new();
+static RE_RUST: OnceLock<regex::Regex> = OnceLock::new();
+static RE_REACT: OnceLock<regex::Regex> = OnceLock::new();
+static RE_ANDROID: OnceLock<regex::Regex> = OnceLock::new();
+static RE_TAURI: OnceLock<regex::Regex> = OnceLock::new();
+static RE_AI: OnceLock<regex::Regex> = OnceLock::new();
 
 /// Calculates a relevance score for an article to filter out noise (e.g., Finance, Politics).
 /// Positive score: Keep/Promote. Negative score: Demote/Discard.
@@ -123,14 +131,14 @@ pub async fn fetch_feed(
     let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
 
     // Simple regex to find src="..."
-    let re_img = regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap();
+    let re_img = RE_IMG.get_or_init(|| regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap());
 
     // Keyword Regexes for Re-classification
-    let re_rust = regex::Regex::new(r"(?i)\brust\b").unwrap();
-    let re_react = regex::Regex::new(r"(?i)\breact\b").unwrap();
-    let re_android = regex::Regex::new(r"(?i)\bandroid\b").unwrap();
-    let re_tauri = regex::Regex::new(r"(?i)\btauri\b").unwrap();
-    let re_ai = regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap();
+    let re_rust = RE_RUST.get_or_init(|| regex::Regex::new(r"(?i)\brust\b").unwrap());
+    let re_react = RE_REACT.get_or_init(|| regex::Regex::new(r"(?i)\breact\b").unwrap());
+    let re_android = RE_ANDROID.get_or_init(|| regex::Regex::new(r"(?i)\bandroid\b").unwrap());
+    let re_tauri = RE_TAURI.get_or_init(|| regex::Regex::new(r"(?i)\btauri\b").unwrap());
+    let re_ai = RE_AI.get_or_init(|| regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap());
 
     let articles = channel
         .items()
