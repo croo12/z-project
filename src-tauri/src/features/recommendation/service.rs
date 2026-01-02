@@ -121,8 +121,11 @@ pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCat
 pub async fn fetch_feed(
     url: &str,
     source_category: ArticleCategory,
+    client: &reqwest::Client,
 ) -> Result<Vec<Article>, String> {
-    let content = reqwest::get(url)
+    let content = client
+        .get(url)
+        .send()
         .await
         .map_err(|e| e.to_string())?
         .bytes()
@@ -130,15 +133,24 @@ pub async fn fetch_feed(
         .map_err(|e| e.to_string())?;
     let channel = rss::Channel::read_from(Cursor::new(content)).map_err(|e| e.to_string())?;
 
-    // Simple regex to find src="..."
+    // Optimized: Use OnceLock to compile regexes only once
+    static RE_IMG: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_img =
         RE_IMG.get_or_init(|| regex::Regex::new(r#"<img[^>]+src=["']([^"']+)["']"#).unwrap());
 
-    // Keyword Regexes for Re-classification
+    static RE_RUST: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_rust = RE_RUST.get_or_init(|| regex::Regex::new(r"(?i)\brust\b").unwrap());
+
+    static RE_REACT: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_react = RE_REACT.get_or_init(|| regex::Regex::new(r"(?i)\breact\b").unwrap());
+
+    static RE_ANDROID: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_android = RE_ANDROID.get_or_init(|| regex::Regex::new(r"(?i)\bandroid\b").unwrap());
+
+    static RE_TAURI: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_tauri = RE_TAURI.get_or_init(|| regex::Regex::new(r"(?i)\btauri\b").unwrap());
+
+    static RE_AI: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
     let re_ai =
         RE_AI.get_or_init(|| regex::Regex::new(r"(?i)\b(ai|llm|gpt|generative)\b").unwrap());
 
