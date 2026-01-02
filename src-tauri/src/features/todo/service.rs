@@ -3,7 +3,7 @@ use super::repository::TodoRepository;
 use std::sync::Arc;
 
 pub struct TodoState {
-    pub repo: Arc<dyn TodoRepository + Send + Sync>,
+    repo: Arc<dyn TodoRepository + Send + Sync>,
 }
 
 impl TodoState {

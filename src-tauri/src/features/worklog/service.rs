@@ -3,7 +3,7 @@ use super::repository::WorkLogRepository;
 use std::sync::Arc;
 
 pub struct WorkLogState {
-    pub repo: Arc<dyn WorkLogRepository + Send + Sync>,
+    repo: Arc<dyn WorkLogRepository + Send + Sync>,
 }
 
 impl WorkLogState {

@@ -1,23 +1,23 @@
 use super::model::{Article, ArticleCategory, Feedback, UserPersona, UserPreferences};
+use super::repository::RecommendationRepository;
 use super::service::{
     calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
 };
 use crate::db::DbPool;
-use rusqlite::OptionalExtension;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{Manager, State};
 
 pub struct RecommendationState {
-    pub pool: DbPool,
+    repo: Arc<dyn RecommendationRepository + Send + Sync>,
     pub persona: Mutex<UserPersona>,
 }
 
 impl RecommendationState {
-    pub fn new(pool: DbPool) -> Self {
+    pub fn new(repo: Arc<dyn RecommendationRepository + Send + Sync>) -> Self {
         Self {
-            pool,
+            repo,
             persona: Mutex::new(UserPersona::default()),
         }
     }
@@ -53,79 +53,6 @@ impl RecommendationState {
         }
     }
 
-    // Refactored to separate DB logic from async calls to solve Send issues and allow easier testing
-    pub fn get_articles_from_db(&self) -> Result<Vec<Article>, String> {
-        let conn = self.pool.get().map_err(|e| e.to_string())?;
-
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles")
-            .map_err(|e| e.to_string())?;
-
-        let articles_iter = stmt
-            .query_map([], |row| {
-                let tags_str: String = row.get(4)?;
-                let tags: Vec<ArticleCategory> =
-                    serde_json::from_str(&tags_str).unwrap_or_else(|e| {
-                        eprintln!("Failed to deserialize tags from DB: {}", e);
-                        Default::default()
-                    });
-
-                let image_url: Option<String> = row.get(6).ok();
-                let author: Option<String> = row.get(7).ok();
-                let feedback_helpful: Option<bool> = row.get(8).ok();
-                let feedback_reason: Option<String> = row.get(9).ok();
-                let feedback_at: Option<String> = row.get(10).ok();
-
-                let feedback = if let (Some(h), Some(r), Some(t)) =
-                    (feedback_helpful, feedback_reason, feedback_at)
-                {
-                    Some(Feedback {
-                        is_helpful: h,
-                        reason: r,
-                        created_at: t,
-                    })
-                } else {
-                    None
-                };
-
-                Ok(Article {
-                    id: row.get(0)?,
-                    title: row.get(1)?,
-                    summary: row.get(2)?,
-                    url: row.get(3)?,
-                    tags,
-                    published_at: row.get(5)?,
-                    image_url,
-                    author,
-                    feedback,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-
-        let mut articles = Vec::new();
-        for a in articles_iter {
-            articles.push(a.map_err(|e| e.to_string())?);
-        }
-        Ok(articles)
-    }
-
-    pub fn get_feedback_from_db(&self) -> Result<Vec<Feedback>, String> {
-        let conn = self.pool.get().map_err(|e| e.to_string())?;
-        let mut stmt = conn.prepare("SELECT feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NOT NULL")
-             .map_err(|e| e.to_string())?;
-
-        let feedback_iter = stmt
-            .query_map([], |row| {
-                Ok(Feedback {
-                    is_helpful: row.get(0)?,
-                    reason: row.get(1)?,
-                    created_at: row.get(2)?,
-                })
-            })
-            .map_err(|e| e.to_string())?;
-
-        Ok(feedback_iter.filter_map(|f| f.ok()).collect())
-    }
-
     pub fn save_preferences(&self, prefs: UserPreferences, app_handle: &tauri::AppHandle) {
         let app_dir = app_handle
             .path()
@@ -155,6 +82,10 @@ impl RecommendationState {
             }
         }
         UserPreferences::default()
+    }
+
+    pub fn get_repo(&self) -> &Arc<dyn RecommendationRepository + Send + Sync> {
+        &self.repo
     }
 }
 
@@ -251,18 +182,11 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
     }
 
     // Deduplication & Merge Logic
-    let conn = state.pool.get().map_err(|e| e.to_string())?;
+    let repo = state.get_repo();
 
     for item in all_fetched {
         // Check if exists
-        let existing_tags_json: Option<String> = conn
-            .query_row(
-                "SELECT tags FROM articles WHERE url = ?1",
-                rusqlite::params![item.url],
-                |row| row.get::<_, String>(0),
-            )
-            .optional()
-            .map_err(|e| e.to_string())?;
+        let existing_tags_json = repo.get_existing_tags(&item.url)?;
 
         let final_tags = if let Some(tags_str) = existing_tags_json {
             // Merge
@@ -280,26 +204,11 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
             item.tags
         };
 
-        let tags_json = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+        // Create updated item with merged tags
+        let mut updated_item = item.clone();
+        updated_item.tags = final_tags;
 
-        conn.execute(
-            "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
-             ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6, image_url = ?7, author = ?8", // Update tags, timestamp, image_url, author
-            rusqlite::params![
-                item.id,
-                item.title,
-                item.summary,
-                item.url,
-                tags_json,
-                item.published_at,
-                item.image_url,
-                item.author,
-                item.feedback.as_ref().map(|f| f.is_helpful),
-                item.feedback.as_ref().map(|f| f.reason.clone()),
-                item.feedback.as_ref().map(|f| f.created_at.clone())
-            ],
-        ).map_err(|e| e.to_string())?;
+        repo.save_article(&updated_item)?;
     }
 
     Ok(new_count)
@@ -310,8 +219,8 @@ pub async fn get_recommended_articles(
     state: State<'_, RecommendationState>,
     app: tauri::AppHandle,
 ) -> Result<Vec<Article>, String> {
-    // DB Access must happen synchronously and drop connection before async AI calls
-    let articles = state.get_articles_from_db()?;
+    // DB Access via Repo
+    let articles = state.get_repo().get_all_articles()?;
 
     // 1. Calculate Scores & Sort
     let prefs = state.load_preferences(&app);
@@ -363,30 +272,19 @@ pub async fn submit_feedback(
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     // 1. Update DB (scoped)
-    {
-        let conn = state.pool.get().map_err(|e| e.to_string())?;
-        let timestamp = chrono::Local::now().to_rfc3339();
-        conn.execute(
-            "UPDATE articles SET feedback_helpful = ?1, feedback_reason = ?2, feedback_at = ?3 WHERE id = ?4",
-            rusqlite::params![helpful, reason, timestamp, id],
-        ).map_err(|e| e.to_string())?;
-    } // conn dropped
+    let timestamp = chrono::Local::now().to_rfc3339();
+    state
+        .get_repo()
+        .update_feedback(&id, helpful, &reason, &timestamp)?;
 
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
         // Check feedback count
-        let conn = state.pool.get().map_err(|e| e.to_string())?;
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM articles WHERE feedback_helpful IS NOT NULL",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap_or(0);
+        let count = state.get_repo().get_feedback_count().unwrap_or(0);
 
         if count > 0 && count % 3 == 0 {
             println!("Triggering Persona Update (Feedback Count: {})", count);
-            let all_feedback = state.get_feedback_from_db()?;
+            let all_feedback = state.get_repo().get_all_feedback()?;
             let current_persona = state.persona.lock().unwrap().clone();
 
             if let Ok(new_persona) =

@@ -40,6 +40,7 @@ describe("ArticleList", () => {
         articles={mockArticles}
         onRefresh={() => {}}
         onFeedbackUpdate={() => {}}
+        onSubmitFeedback={async () => {}}
       />
     );
     expect(screen.getByText("Test Article 1")).toBeDefined();
@@ -52,6 +53,7 @@ describe("ArticleList", () => {
         articles={mockArticles}
         onRefresh={() => {}}
         onFeedbackUpdate={() => {}}
+        onSubmitFeedback={async () => {}}
       />
     );
 

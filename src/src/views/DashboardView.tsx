@@ -32,11 +32,10 @@ export default function DashboardView() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    refreshTodos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    refreshWorkLogs();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void refreshTodos();
+    void refreshWorkLogs();
+  }, [refreshTodos, refreshWorkLogs]);
 
   async function handleAddTodo(e: React.FormEvent) {
     e.preventDefault();

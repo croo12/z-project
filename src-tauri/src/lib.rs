@@ -4,10 +4,11 @@ mod db_tests;
 pub mod features;
 
 // Re-exports for easier access if needed, or update consumers to use features::*
-use features::recommendation::system::{
+use features::recommendation::commands::{
     fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
     submit_feedback, RecommendationState,
 };
+use features::recommendation::repository::SqliteRecommendationRepository;
 use features::todo::{
     commands::{add_todo, delete_todo, get_todos, toggle_todo},
     repository::SqliteTodoRepository,
@@ -34,12 +35,13 @@ pub fn run() {
             // Initialize Repositories
             let todo_repo = Arc::new(SqliteTodoRepository::new(pool.clone()));
             let worklog_repo = Arc::new(SqliteWorkLogRepository::new(pool.clone()));
+            let recommendation_repo = Arc::new(SqliteRecommendationRepository::new(pool.clone()));
 
             // Initialize States
             app.manage(TodoState::new(todo_repo));
             app.manage(WorkLogState::new(worklog_repo));
 
-            let rec_state = RecommendationState::new(pool.clone());
+            let rec_state = RecommendationState::new(recommendation_repo);
             // Load Persona (JSON)
             rec_state.load_persona(app.handle());
             app.manage(rec_state);
