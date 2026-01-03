@@ -243,6 +243,7 @@ pub async fn update_user_persona(
     feedback_history: &[Feedback],
     current_persona: &UserPersona,
     api_key: &str,
+    client: &reqwest::Client,
 ) -> Result<UserPersona, String> {
     if feedback_history.is_empty() {
         return Ok(current_persona.clone());
@@ -275,7 +276,6 @@ pub async fn update_user_persona(
     prompt.push_str("3. Update the description to be specific (e.g., 'User prefers Rust async and Tauri architecture, but dislikes general finance news').\n");
     prompt.push_str("4. Output ONLY the concise description text (2-3 sentences).");
 
-    let client = reqwest::Client::new();
     let res = client.post(format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}", api_key))
         .json(&serde_json::json!({
             "contents": [{
@@ -303,6 +303,7 @@ pub async fn recommend_with_gemini(
     persona: &UserPersona,
     user_interests: &[ArticleCategory],
     api_key: String,
+    client: &reqwest::Client,
 ) -> Vec<Article> {
     // 1. Construct Prompt
     let mut prompt = String::from("You are a tech article recommender. Select the best 4 articles from the CANDIDATES list.\n\n");
@@ -336,7 +337,6 @@ pub async fn recommend_with_gemini(
     prompt.push_str("\n\nRespond ONLY with a JSON array of the IDs of the 4 selected articles.");
 
     // 2. Call Gemini API
-    let client = reqwest::Client::new();
     let res = client.post(format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}", api_key))
         .json(&serde_json::json!({
             "contents": [{

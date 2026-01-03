@@ -12,6 +12,7 @@ use tauri::{Manager, State};
 pub struct RecommendationState {
     pub pool: DbPool,
     pub persona: Mutex<UserPersona>,
+    pub client: reqwest::Client,
 }
 
 impl RecommendationState {
@@ -19,6 +20,9 @@ impl RecommendationState {
         Self {
             pool,
             persona: Mutex::new(UserPersona::default()),
+            client: reqwest::Client::builder()
+                .build()
+                .unwrap_or_else(|_| reqwest::Client::new()),
         }
     }
 
@@ -225,11 +229,10 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
     let mut all_fetched = Vec::new();
 
     // Optimization: Reuse client and fetch concurrently
-    let client = reqwest::Client::new();
     let mut handles = Vec::new();
 
     for (url, category) in feeds {
-        let client = client.clone();
+        let client = state.client.clone();
         let url = url.to_string();
         handles.push(tauri::async_runtime::spawn(async move {
             fetch_feed(&url, category, &client).await
@@ -342,7 +345,14 @@ pub async fn get_recommended_articles(
         let persona = state.persona.lock().unwrap().clone();
 
         // This await is now safe because we are not holding any DB locks/connections
-        recommend_with_gemini(candidates_for_ai, &persona, &prefs.interested_tags, api_key).await
+        recommend_with_gemini(
+            candidates_for_ai,
+            &persona,
+            &prefs.interested_tags,
+            api_key,
+            &state.client,
+        )
+        .await
     } else {
         remaining.into_iter().take(4).collect()
     };
@@ -390,7 +400,7 @@ pub async fn submit_feedback(
             let current_persona = state.persona.lock().unwrap().clone();
 
             if let Ok(new_persona) =
-                update_user_persona(&all_feedback, &current_persona, &api_key).await
+                update_user_persona(&all_feedback, &current_persona, &api_key, &state.client).await
             {
                 *state.persona.lock().unwrap() = new_persona;
                 state.save_persona(&app);
