@@ -31,7 +31,9 @@ impl SqliteRecommendationRepository {
 impl RecommendationRepository for SqliteRecommendationRepository {
     fn get_articles(&self) -> Result<Vec<Article>, AppError> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles")?;
+        // Optimization: Filter out articles that already have feedback (Read/Processed)
+        // This prevents loading thousands of old articles into memory only to filter them out in Rust.
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NULL")?;
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
