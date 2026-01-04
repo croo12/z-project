@@ -1,12 +1,17 @@
 pub mod db;
 #[cfg(test)]
 mod db_tests;
+pub mod error;
 pub mod features;
 
 // Re-exports for easier access if needed, or update consumers to use features::*
-use features::recommendation::system::{
-    fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
-    submit_feedback, RecommendationState,
+use features::recommendation::{
+    commands::{
+        fetch_articles, get_recommended_articles, get_user_interests, save_user_interests,
+        submit_feedback,
+    },
+    repository::SqliteRecommendationRepository,
+    system::RecommendationState,
 };
 use features::todo::{
     commands::{add_todo, delete_todo, get_todos, toggle_todo},
@@ -39,7 +44,8 @@ pub fn run() {
             app.manage(TodoState::new(todo_repo));
             app.manage(WorkLogState::new(worklog_repo));
 
-            let rec_state = RecommendationState::new(pool.clone());
+            let rec_repo = Arc::new(SqliteRecommendationRepository::new(pool.clone()));
+            let rec_state = RecommendationState::new(rec_repo);
             // Load Persona (JSON)
             rec_state.load_persona(app.handle());
             app.manage(rec_state);
