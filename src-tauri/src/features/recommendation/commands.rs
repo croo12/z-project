@@ -133,7 +133,7 @@ pub async fn get_recommended_articles(
     app: tauri::AppHandle,
 ) -> Result<Vec<Article>, AppError> {
     // DB Access
-    let articles = state.repo.get_articles()?;
+    let articles = state.repo.get_candidate_articles()?;
 
     // 1. Calculate Scores & Sort
     let prefs = state.load_preferences(&app);

@@ -113,7 +113,7 @@ mod tests {
         let state = RecommendationState::new(repo);
 
         // Test Get (Internal DB method)
-        let articles = state.repo.get_articles().unwrap();
+        let articles = state.repo.get_candidate_articles().unwrap();
         assert!(!articles.is_empty());
         assert_eq!(articles[0].title, "Test Article");
     }

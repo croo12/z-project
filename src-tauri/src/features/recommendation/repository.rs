@@ -4,7 +4,7 @@ use crate::features::recommendation::model::{Article, ArticleCategory, Feedback}
 use rusqlite::OptionalExtension;
 
 pub trait RecommendationRepository: Send + Sync {
-    fn get_articles(&self) -> Result<Vec<Article>, AppError>;
+    fn get_candidate_articles(&self) -> Result<Vec<Article>, AppError>;
     fn get_feedback(&self) -> Result<Vec<Feedback>, AppError>;
     fn check_article_exists(&self, url: &str) -> Result<Option<String>, AppError>;
     fn save_article(&self, article: Article) -> Result<(), AppError>;
@@ -29,9 +29,9 @@ impl SqliteRecommendationRepository {
 }
 
 impl RecommendationRepository for SqliteRecommendationRepository {
-    fn get_articles(&self) -> Result<Vec<Article>, AppError> {
+    fn get_candidate_articles(&self) -> Result<Vec<Article>, AppError> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles")?;
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NULL")?;
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
