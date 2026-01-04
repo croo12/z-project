@@ -98,31 +98,8 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
     }
 
     // Deduplication & Merge Logic
-    // We can't batch insert easily with SQLite due to unique constraints and logic needed per item,
-    // so we iterate.
-    for mut item in all_fetched {
-        // Check if exists
-        let existing_tags_json = state.repo.check_article_exists(&item.url)?;
-
-        let final_tags = if let Some(tags_str) = existing_tags_json {
-            // Merge
-            let mut current_tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)?;
-            for new_tag in item.tags {
-                if !current_tags.contains(&new_tag) {
-                    current_tags.push(new_tag);
-                }
-            }
-            current_tags
-        } else {
-            // New
-            new_count += 1;
-            item.tags
-        };
-
-        // We need to update the item with merged tags before saving
-        item.tags = final_tags;
-        state.repo.save_article(item)?;
-    }
+    // Optimized: Use bulk upsert in a single transaction
+    new_count = state.repo.upsert_articles(all_fetched)?;
 
     Ok(new_count)
 }
