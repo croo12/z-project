@@ -3,6 +3,7 @@ use super::repository::RecommendationRepository;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use tauri::Manager;
 
 pub struct RecommendationState {
     pub repo: Arc<dyn RecommendationRepository>,

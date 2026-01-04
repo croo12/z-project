@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use crate::db::DbPool;
 use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use crate::error::AppError;
@@ -30,7 +29,8 @@ impl RecommendationRepository for SqliteRecommendationRepository {
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
-            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)?;
+            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)
+                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new(e)))?;
 
             let image_url: Option<String> = row.get(6).ok();
             let author: Option<String> = row.get(7).ok();

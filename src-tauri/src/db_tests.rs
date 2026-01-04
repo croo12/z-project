@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::features::recommendation::system::RecommendationState;
+    use crate::features::recommendation::repository::SqliteRecommendationRepository;
     use crate::features::todo::repository::SqliteTodoRepository;
     use crate::features::todo::service::TodoState;
     use crate::features::worklog::repository::SqliteWorkLogRepository;
@@ -108,10 +109,11 @@ mod tests {
              rusqlite::params!["1", "Test Article", "Summary", "http://example.com", "[\"Rust\"]", "2023-01-01"],
          ).unwrap();
 
-        let state = RecommendationState::new(pool.clone());
+        let repo = Arc::new(SqliteRecommendationRepository::new(pool.clone()));
+        let state = RecommendationState::new(repo);
 
         // Test Get (Internal DB method)
-        let articles = state.get_articles_from_db().unwrap();
+        let articles = state.repo.get_articles().unwrap();
         assert!(!articles.is_empty());
         assert_eq!(articles[0].title, "Test Article");
     }
