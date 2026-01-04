@@ -1,6 +1,6 @@
 use crate::db::DbPool;
-use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use crate::error::AppError;
+use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use rusqlite::OptionalExtension;
 
 pub trait RecommendationRepository: Send + Sync {
@@ -8,7 +8,13 @@ pub trait RecommendationRepository: Send + Sync {
     fn get_feedback(&self) -> Result<Vec<Feedback>, AppError>;
     fn check_article_exists(&self, url: &str) -> Result<Option<String>, AppError>;
     fn save_article(&self, article: Article) -> Result<(), AppError>;
-    fn update_feedback(&self, id: &str, helpful: bool, reason: &str, timestamp: &str) -> Result<(), AppError>;
+    fn update_feedback(
+        &self,
+        id: &str,
+        helpful: bool,
+        reason: &str,
+        timestamp: &str,
+    ) -> Result<(), AppError>;
     fn get_feedback_count(&self) -> Result<i64, AppError>;
 }
 
@@ -29,8 +35,13 @@ impl RecommendationRepository for SqliteRecommendationRepository {
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
-            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)
-                .map_err(|e| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new(e)))?;
+            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).map_err(|e| {
+                rusqlite::Error::FromSqlConversionFailure(
+                    4,
+                    rusqlite::types::Type::Text,
+                    Box::new(e),
+                )
+            })?;
 
             let image_url: Option<String> = row.get(6).ok();
             let author: Option<String> = row.get(7).ok();
@@ -126,7 +137,13 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         Ok(())
     }
 
-    fn update_feedback(&self, id: &str, helpful: bool, reason: &str, timestamp: &str) -> Result<(), AppError> {
+    fn update_feedback(
+        &self,
+        id: &str,
+        helpful: bool,
+        reason: &str,
+        timestamp: &str,
+    ) -> Result<(), AppError> {
         let conn = self.pool.get()?;
         conn.execute(
             "UPDATE articles SET feedback_helpful = ?1, feedback_reason = ?2, feedback_at = ?3 WHERE id = ?4",

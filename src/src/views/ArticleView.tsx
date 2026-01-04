@@ -20,7 +20,8 @@ export default function ArticleView() {
 
   useEffect(() => {
     refreshArticles();
-  }, [refreshArticles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [showSettings, setShowSettings] = useState(false);
 

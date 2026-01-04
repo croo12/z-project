@@ -1,37 +1,66 @@
-use tauri::State;
-use crate::features::recommendation::model::{Article, ArticleCategory};
-use crate::features::recommendation::system::RecommendationState;
-use crate::features::recommendation::service::{fetch_feed, calculate_relevance_score, recommend_with_gemini, update_user_persona};
 use crate::error::AppError;
+use crate::features::recommendation::model::{Article, ArticleCategory};
+use crate::features::recommendation::service::{
+    calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
+};
+use crate::features::recommendation::system::RecommendationState;
+use tauri::State;
 
 #[tauri::command]
 pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usize, AppError> {
     let feeds = vec![
         // Rust
         ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
-        ("https://this-week-in-rust.org/rss.xml", ArticleCategory::Rust),
+        (
+            "https://this-week-in-rust.org/rss.xml",
+            ArticleCategory::Rust,
+        ),
         // Android / Kotlin
-        ("https://feeds.feedburner.com/blogspot/hsDu", ArticleCategory::Android),
+        (
+            "https://feeds.feedburner.com/blogspot/hsDu",
+            ArticleCategory::Android,
+        ),
         ("https://androidweekly.net/rss", ArticleCategory::Android),
         // Tauri
         ("https://tauri.app/blog/rss.xml", ArticleCategory::Tauri),
         // Web / TypeScript
-        ("https://devblogs.microsoft.com/typescript/feed/", ArticleCategory::TypeScript),
+        (
+            "https://devblogs.microsoft.com/typescript/feed/",
+            ArticleCategory::TypeScript,
+        ),
         ("https://css-tricks.com/feed/", ArticleCategory::Web),
-        ("https://www.smashingmagazine.com/feed/", ArticleCategory::Web),
+        (
+            "https://www.smashingmagazine.com/feed/",
+            ArticleCategory::Web,
+        ),
         ("https://web.dev/feed.xml", ArticleCategory::Web),
         ("https://fettblog.eu/feed.xml", ArticleCategory::TypeScript),
-        ("https://levelup.gitconnected.com/feed", ArticleCategory::Web),
-        ("https://2ality.com/feeds/posts.xml", ArticleCategory::TypeScript),
+        (
+            "https://levelup.gitconnected.com/feed",
+            ArticleCategory::Web,
+        ),
+        (
+            "https://2ality.com/feeds/posts.xml",
+            ArticleCategory::TypeScript,
+        ),
         // React
         ("https://react.dev/feed.xml", ArticleCategory::React),
         ("https://overreacted.io/rss.xml", ArticleCategory::React),
         ("https://tkdodo.eu/blog/rss.xml", ArticleCategory::React),
-        ("https://kentcdodds.com/blog/rss.xml", ArticleCategory::React),
-        ("https://www.joshwcomeau.com/rss.xml", ArticleCategory::React),
+        (
+            "https://kentcdodds.com/blog/rss.xml",
+            ArticleCategory::React,
+        ),
+        (
+            "https://www.joshwcomeau.com/rss.xml",
+            ArticleCategory::React,
+        ),
         ("https://robinwieruch.de/index.xml", ArticleCategory::React),
         ("https://ui.dev/blog/rss", ArticleCategory::React),
-        ("https://www.developerway.com/rss.xml", ArticleCategory::React),
+        (
+            "https://www.developerway.com/rss.xml",
+            ArticleCategory::React,
+        ),
         // AI
         ("https://openai.com/blog/rss.xml", ArticleCategory::AI),
         ("https://blogs.microsoft.com/ai/feed/", ArticleCategory::AI),
@@ -77,8 +106,7 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
 
         let final_tags = if let Some(tags_str) = existing_tags_json {
             // Merge
-            let mut current_tags: Vec<ArticleCategory> =
-                serde_json::from_str(&tags_str)?;
+            let mut current_tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)?;
             for new_tag in item.tags {
                 if !current_tags.contains(&new_tag) {
                     current_tags.push(new_tag);
@@ -163,7 +191,9 @@ pub async fn submit_feedback(
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
     let timestamp = chrono::Local::now().to_rfc3339();
-    state.repo.update_feedback(&id, helpful, &reason, &timestamp)?;
+    state
+        .repo
+        .update_feedback(&id, helpful, &reason, &timestamp)?;
 
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {

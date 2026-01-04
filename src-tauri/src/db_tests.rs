@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use crate::features::recommendation::system::RecommendationState;
     use crate::features::recommendation::repository::SqliteRecommendationRepository;
+    use crate::features::recommendation::system::RecommendationState;
     use crate::features::todo::repository::SqliteTodoRepository;
     use crate::features::todo::service::TodoState;
     use crate::features::worklog::repository::SqliteWorkLogRepository;

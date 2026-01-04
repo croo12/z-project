@@ -1,7 +1,7 @@
 pub mod db;
-pub mod error;
 #[cfg(test)]
 mod db_tests;
+pub mod error;
 pub mod features;
 
 // Re-exports for easier access if needed, or update consumers to use features::*
