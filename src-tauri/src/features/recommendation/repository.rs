@@ -30,10 +30,7 @@ impl RecommendationRepository for SqliteRecommendationRepository {
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
-            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_else(|e| {
-                eprintln!("Failed to deserialize tags from DB: {}", e);
-                Default::default()
-            });
+            let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str)?;
 
             let image_url: Option<String> = row.get(6).ok();
             let author: Option<String> = row.get(7).ok();
@@ -144,7 +141,7 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             "SELECT COUNT(*) FROM articles WHERE feedback_helpful IS NOT NULL",
             [],
             |row| row.get(0),
-        ).unwrap_or(0);
+        )?;
         Ok(count)
     }
 }

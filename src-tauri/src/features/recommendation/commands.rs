@@ -78,7 +78,7 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
         let final_tags = if let Some(tags_str) = existing_tags_json {
             // Merge
             let mut current_tags: Vec<ArticleCategory> =
-                serde_json::from_str(&tags_str).unwrap_or_default();
+                serde_json::from_str(&tags_str)?;
             for new_tag in item.tags {
                 if !current_tags.contains(&new_tag) {
                     current_tags.push(new_tag);
@@ -167,18 +167,21 @@ pub async fn submit_feedback(
 
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
-        let count = state.repo.get_feedback_count().unwrap_or(0);
+        let count = state.repo.get_feedback_count()?;
 
         if count > 0 && count % 3 == 0 {
             println!("Triggering Persona Update (Feedback Count: {})", count);
             let all_feedback = state.repo.get_feedback()?;
             let current_persona = state.persona.lock().unwrap().clone();
 
-            if let Ok(new_persona) =
-                update_user_persona(&all_feedback, &current_persona, &api_key, &state.client).await
-            {
+            let persona_update_result =
+                update_user_persona(&all_feedback, &current_persona, &api_key, &state.client).await;
+
+            if let Ok(new_persona) = persona_update_result {
                 *state.persona.lock().unwrap() = new_persona;
                 state.save_persona(&app);
+            } else if let Err(e) = persona_update_result {
+                eprintln!("Failed to update user persona: {}", e);
             }
         }
     }
