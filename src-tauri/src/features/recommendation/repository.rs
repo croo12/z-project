@@ -8,6 +8,7 @@ pub trait RecommendationRepository: Send + Sync {
     fn get_feedback(&self) -> Result<Vec<Feedback>, AppError>;
     fn check_article_exists(&self, url: &str) -> Result<Option<String>, AppError>;
     fn save_article(&self, article: Article) -> Result<(), AppError>;
+    fn upsert_articles(&self, articles: Vec<Article>) -> Result<usize, AppError>;
     fn update_feedback(
         &self,
         id: &str,
@@ -137,6 +138,64 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             ],
         )?;
         Ok(())
+    }
+
+    fn upsert_articles(&self, articles: Vec<Article>) -> Result<usize, AppError> {
+        let mut conn = self.pool.get()?;
+        let tx = conn.transaction()?;
+        let mut new_count = 0;
+
+        {
+            // Prepare statements for reuse
+            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
+            let mut stmt_insert = tx.prepare_cached(
+                "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+                 ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6, image_url = ?7, author = ?8"
+            )?;
+
+            for article in articles {
+                // Check if exists
+                let tags_json: Option<String> = stmt_check
+                    .query_row(rusqlite::params![article.url], |row| row.get(0))
+                    .optional()?;
+
+                let final_tags = if let Some(tags_str) = tags_json {
+                    // Merge
+                    let mut current_tags: Vec<ArticleCategory> =
+                        serde_json::from_str(&tags_str).unwrap_or_default();
+                    for new_tag in article.tags {
+                        if !current_tags.contains(&new_tag) {
+                            current_tags.push(new_tag);
+                        }
+                    }
+                    current_tags
+                } else {
+                    // New
+                    new_count += 1;
+                    article.tags
+                };
+
+                let tags_json_new = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+
+                stmt_insert.execute(rusqlite::params![
+                    article.id,
+                    article.title,
+                    article.summary,
+                    article.url,
+                    tags_json_new,
+                    article.published_at,
+                    article.image_url,
+                    article.author,
+                    article.feedback.as_ref().map(|f| f.is_helpful),
+                    article.feedback.as_ref().map(|f| f.reason.clone()),
+                    article.feedback.as_ref().map(|f| f.created_at.clone())
+                ])?;
+            }
+        }
+
+        tx.commit()?;
+        Ok(new_count)
     }
 
     fn update_feedback(
