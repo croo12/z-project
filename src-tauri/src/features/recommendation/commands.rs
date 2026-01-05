@@ -69,7 +69,6 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
         ("https://dev.to/feed", ArticleCategory::General),
     ];
 
-    let mut new_count = 0;
     let mut all_fetched = Vec::new();
 
     // Optimization: Reuse client and fetch concurrently
@@ -99,7 +98,7 @@ pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usi
 
     // Deduplication & Merge Logic
     // Optimized: Use batch upsert in a single transaction to reduce database overhead.
-    new_count = state.repo.upsert_articles(all_fetched)?;
+    let new_count = state.repo.upsert_articles(all_fetched)?;
 
     Ok(new_count)
 }
