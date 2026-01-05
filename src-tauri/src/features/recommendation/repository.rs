@@ -162,7 +162,8 @@ impl RecommendationRepository for SqliteRecommendationRepository {
 
                 let final_tags = if let Some(tags_str) = tags_json {
                     // Merge
-                    let mut current_tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
+                    let mut current_tags: Vec<ArticleCategory> =
+                        serde_json::from_str(&tags_str).unwrap_or_default();
                     for new_tag in article.tags {
                         if !current_tags.contains(&new_tag) {
                             current_tags.push(new_tag);
