@@ -19,16 +19,22 @@ export function useTodos() {
     void refreshTodos();
   }, [refreshTodos]);
 
-  const addTodo = async (text: string) => {
-    if (!text) return;
-    await invoke("add_todo", { text });
-    await refreshTodos();
-  };
+  const addTodo = useCallback(
+    async (text: string) => {
+      if (!text) return;
+      await invoke("add_todo", { text });
+      await refreshTodos();
+    },
+    [refreshTodos]
+  );
 
-  const toggleTodo = async (id: number) => {
-    await invoke("toggle_todo", { id });
-    await refreshTodos();
-  };
+  const toggleTodo = useCallback(
+    async (id: number) => {
+      await invoke("toggle_todo", { id });
+      await refreshTodos();
+    },
+    [refreshTodos]
+  );
 
   return { todos, addTodo, toggleTodo };
 }

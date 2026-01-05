@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useTodos } from "../../hooks/useTodos";
+import TodoItem from "./TodoItem";
 
 export default function TodoList() {
   const { todos, addTodo, toggleTodo } = useTodos();
@@ -33,45 +34,7 @@ export default function TodoList() {
           </div>
         )}
         {todos.map((todo) => (
-          <div
-            key={todo.id}
-            className={`card todo-item ${todo.completed ? "completed" : ""}`}
-          >
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                width: "100%",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo.id)}
-                style={{
-                  marginRight: "10px",
-                  width: "20px",
-                  height: "20px",
-                }}
-                aria-label={`Mark ${todo.text} as ${
-                  todo.completed ? "incomplete" : "complete"
-                }`}
-              />
-              <span
-                style={{
-                  flex: 1,
-                  textDecoration: todo.completed ? "line-through" : "none",
-                  color: todo.completed ? "#888" : "inherit",
-                }}
-              >
-                {todo.text}
-              </span>
-              <small style={{ color: "#888" }}>
-                {todo.completed ? "Done" : ""}
-              </small>
-            </label>
-          </div>
+          <TodoItem key={todo.id} todo={todo} toggleTodo={toggleTodo} />
         ))}
       </div>
     </section>
