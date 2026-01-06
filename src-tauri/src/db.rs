@@ -65,5 +65,13 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     )
     .map_err(|e| e.to_string())?;
 
+    // Optimization: Partial index to speed up fetching candidate articles (unread)
+    // Most reads filter for `feedback_helpful IS NULL`.
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_articles_feedback ON articles(feedback_helpful) WHERE feedback_helpful IS NULL",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+
     Ok(pool)
 }
