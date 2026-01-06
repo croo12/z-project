@@ -6,9 +6,9 @@ use std::io::Cursor;
 /// Positive score: Keep/Promote. Negative score: Demote/Discard.
 pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCategory]) -> i32 {
     let mut score = 0;
+    // Optimization: Avoid allocating a new concatenated string. Check title and summary individually.
     let title_lower = article.title.to_lowercase();
     let summary_lower = article.summary.to_lowercase();
-    let content_to_check = format!("{} {}", title_lower, summary_lower);
 
     // High Impact Keywords
     let high_impact = [
@@ -62,17 +62,17 @@ pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCat
     ];
 
     for word in high_impact.iter() {
-        if content_to_check.contains(word) {
+        if title_lower.contains(word) || summary_lower.contains(word) {
             score += 10;
         }
     }
     for word in medium_impact.iter() {
-        if content_to_check.contains(word) {
+        if title_lower.contains(word) || summary_lower.contains(word) {
             score += 3;
         }
     }
     for word in negative.iter() {
-        if content_to_check.contains(word) {
+        if title_lower.contains(word) || summary_lower.contains(word) {
             score -= 20; // Strong penalty
         }
     }
