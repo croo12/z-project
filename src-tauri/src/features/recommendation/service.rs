@@ -174,13 +174,29 @@ pub async fn fetch_feed(
             }
 
             // 3. Regex match <img src="..."> in description or content
+            // Optimization: Truncate content to avoid scanning huge strings
             let desc = item.description().unwrap_or("");
             let content = item.content().unwrap_or("");
 
+            // Use char_indices to find the byte offset for the char limit without allocating new strings
+            let desc_limit = desc
+                .char_indices()
+                .map(|(i, _)| i)
+                .nth(5000)
+                .unwrap_or(desc.len());
+            let desc_trunc = &desc[..desc_limit];
+
+            let content_limit = content
+                .char_indices()
+                .map(|(i, _)| i)
+                .nth(5000)
+                .unwrap_or(content.len());
+            let content_trunc = &content[..content_limit];
+
             if image_url.is_none() {
-                if let Some(caps) = re_img.captures(desc) {
+                if let Some(caps) = re_img.captures(desc_trunc) {
                     image_url = Some(caps[1].to_string());
-                } else if let Some(caps) = re_img.captures(content) {
+                } else if let Some(caps) = re_img.captures(content_trunc) {
                     image_url = Some(caps[1].to_string());
                 }
             }
@@ -194,7 +210,7 @@ pub async fn fetch_feed(
             // Tags Logic
             let mut tags = vec![source_category.clone()];
             let title = item.title().unwrap_or("");
-            let text_to_check = format!("{} {}", title, desc);
+            let text_to_check = format!("{} {}", title, desc_trunc);
 
             // Keyword based expansion
             if re_rust.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Rust) {
