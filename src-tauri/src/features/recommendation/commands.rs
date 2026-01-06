@@ -1,82 +1,22 @@
 use crate::error::AppError;
+use crate::features::recommendation::ai::AIService;
+use crate::features::recommendation::config::FEEDS;
 use crate::features::recommendation::model::{Article, ArticleCategory};
-use crate::features::recommendation::service::{
-    calculate_relevance_score, fetch_feed, recommend_with_gemini, update_user_persona,
-};
+use crate::features::recommendation::service::{calculate_relevance_score, fetch_feed};
 use crate::features::recommendation::system::RecommendationState;
 use tauri::State;
 
 #[tauri::command]
 pub async fn fetch_articles(state: State<'_, RecommendationState>) -> Result<usize, AppError> {
-    let feeds = vec![
-        // Rust
-        ("https://blog.rust-lang.org/feed.xml", ArticleCategory::Rust),
-        (
-            "https://this-week-in-rust.org/rss.xml",
-            ArticleCategory::Rust,
-        ),
-        // Android / Kotlin
-        (
-            "https://feeds.feedburner.com/blogspot/hsDu",
-            ArticleCategory::Android,
-        ),
-        ("https://androidweekly.net/rss", ArticleCategory::Android),
-        // Tauri
-        ("https://tauri.app/blog/rss.xml", ArticleCategory::Tauri),
-        // Web / TypeScript
-        (
-            "https://devblogs.microsoft.com/typescript/feed/",
-            ArticleCategory::TypeScript,
-        ),
-        ("https://css-tricks.com/feed/", ArticleCategory::Web),
-        (
-            "https://www.smashingmagazine.com/feed/",
-            ArticleCategory::Web,
-        ),
-        ("https://web.dev/feed.xml", ArticleCategory::Web),
-        ("https://fettblog.eu/feed.xml", ArticleCategory::TypeScript),
-        (
-            "https://levelup.gitconnected.com/feed",
-            ArticleCategory::Web,
-        ),
-        (
-            "https://2ality.com/feeds/posts.xml",
-            ArticleCategory::TypeScript,
-        ),
-        // React
-        ("https://react.dev/feed.xml", ArticleCategory::React),
-        ("https://overreacted.io/rss.xml", ArticleCategory::React),
-        ("https://tkdodo.eu/blog/rss.xml", ArticleCategory::React),
-        (
-            "https://kentcdodds.com/blog/rss.xml",
-            ArticleCategory::React,
-        ),
-        (
-            "https://www.joshwcomeau.com/rss.xml",
-            ArticleCategory::React,
-        ),
-        ("https://robinwieruch.de/index.xml", ArticleCategory::React),
-        ("https://ui.dev/blog/rss", ArticleCategory::React),
-        (
-            "https://www.developerway.com/rss.xml",
-            ArticleCategory::React,
-        ),
-        // AI
-        ("https://openai.com/blog/rss.xml", ArticleCategory::AI),
-        ("https://blogs.microsoft.com/ai/feed/", ArticleCategory::AI),
-        // General / Tech
-        ("https://news.ycombinator.com/rss", ArticleCategory::General),
-        ("https://dev.to/feed", ArticleCategory::General),
-    ];
-
     let mut all_fetched = Vec::new();
 
     // Optimization: Reuse client and fetch concurrently
     let mut handles = Vec::new();
 
-    for (url, category) in feeds {
+    for (url, category) in FEEDS.iter() {
         let client = state.client.clone();
         let url = url.to_string();
+        let category = category.clone();
         handles.push(tauri::async_runtime::spawn(async move {
             fetch_feed(&url, category, &client).await
         }));
@@ -139,7 +79,7 @@ pub async fn get_recommended_articles(
         let candidates_for_ai: Vec<Article> = remaining.into_iter().take(20).collect();
         let persona = state.persona.lock().unwrap().clone();
 
-        recommend_with_gemini(
+        AIService::recommend_with_gemini(
             candidates_for_ai,
             &persona,
             &prefs.interested_tags,
@@ -180,8 +120,13 @@ pub async fn submit_feedback(
             let all_feedback = state.repo.get_feedback()?;
             let current_persona = state.persona.lock().unwrap().clone();
 
-            let persona_update_result =
-                update_user_persona(&all_feedback, &current_persona, &api_key, &state.client).await;
+            let persona_update_result = AIService::update_user_persona(
+                &all_feedback,
+                &current_persona,
+                &api_key,
+                &state.client,
+            )
+            .await;
 
             if let Ok(new_persona) = persona_update_result {
                 *state.persona.lock().unwrap() = new_persona;
