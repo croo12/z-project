@@ -100,7 +100,8 @@ impl AIService {
             .collect();
         prompt.push_str(&serde_json::to_string(&simple_candidates).unwrap_or_default());
 
-        prompt.push_str("\n\nRespond ONLY with a JSON array of the IDs of the 4 selected articles.");
+        prompt
+            .push_str("\n\nRespond ONLY with a JSON array of the IDs of the 4 selected articles.");
 
         // 2. Call Gemini API
         let res = client
