@@ -179,10 +179,18 @@ pub async fn fetch_feed(
             let content = item.content().unwrap_or("");
 
             // Use char_indices to find the byte offset for the char limit without allocating new strings
-            let desc_limit = desc.char_indices().map(|(i, _)| i).nth(5000).unwrap_or(desc.len());
+            let desc_limit = desc
+                .char_indices()
+                .map(|(i, _)| i)
+                .nth(5000)
+                .unwrap_or(desc.len());
             let desc_trunc = &desc[..desc_limit];
 
-            let content_limit = content.char_indices().map(|(i, _)| i).nth(5000).unwrap_or(content.len());
+            let content_limit = content
+                .char_indices()
+                .map(|(i, _)| i)
+                .nth(5000)
+                .unwrap_or(content.len());
             let content_trunc = &content[..content_limit];
 
             if image_url.is_none() {
