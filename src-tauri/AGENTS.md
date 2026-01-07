@@ -37,7 +37,7 @@ This directory (`src-tauri/`) contains the Backend application built with **Rust
 
 ## Key Commands
 - **Check Types**: `cargo check`
-- **Lint**: `RUSTFLAGS="-A unused" cargo clippy`
+- **Lint**: `cargo clippy`
 - **Format**: `cargo fmt`
 - **Run Dev**: `tauri dev` (from root) or `cargo run` (if pure rust logic)
 
@@ -57,7 +57,7 @@ This directory (`src-tauri/`) contains the Backend application built with **Rust
 
 1. **Formatting**: `cargo fmt`
    - Ensure code is standard Rust formatted.
-2. **Linting**: `RUSTFLAGS="-A unused" cargo clippy`
+2. **Linting**: `cargo clippy`
    - Fix all warnings and errors.
 
 **Do not submit a PR if these steps fail.**

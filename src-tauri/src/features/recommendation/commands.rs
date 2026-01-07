@@ -2,7 +2,8 @@ use crate::error::AppError;
 use crate::features::recommendation::ai::AIService;
 use crate::features::recommendation::config::FEEDS;
 use crate::features::recommendation::model::{Article, ArticleCategory};
-use crate::features::recommendation::service::{calculate_relevance_score, fetch_feed};
+use crate::features::recommendation::scoring::calculate_relevance_score;
+use crate::features::recommendation::service::fetch_feed;
 use crate::features::recommendation::system::RecommendationState;
 use tauri::State;
 
