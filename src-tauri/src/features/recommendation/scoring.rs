@@ -1,5 +1,5 @@
 use super::config::{HIGH_IMPACT_KEYWORDS, MEDIUM_IMPACT_KEYWORDS, NEGATIVE_KEYWORDS};
-use super::model::{Article, ArticleCategory, Feedback};
+use super::model::{Article, ArticleCategory};
 
 /// Calculates a relevance score for an article to filter out noise (e.g., Finance, Politics).
 /// Positive score: Keep/Promote. Negative score: Demote/Discard.
@@ -61,6 +61,7 @@ pub fn calculate_relevance_score(article: &Article, user_interests: &[ArticleCat
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::features::recommendation::model::Feedback;
 
     #[test]
     fn test_feedback_scoring_internal() {
