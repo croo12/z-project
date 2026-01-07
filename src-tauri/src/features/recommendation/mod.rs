@@ -1,6 +1,9 @@
+pub mod ai;
 pub mod commands;
+pub mod config;
 pub mod model;
 pub mod repository;
+pub mod scoring;
 pub mod service;
 pub mod system;
 #[cfg(test)]

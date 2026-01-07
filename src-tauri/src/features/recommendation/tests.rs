@@ -2,7 +2,7 @@
 
 use crate::features::recommendation::{
     model::{Article, ArticleCategory},
-    service::calculate_relevance_score,
+    scoring::calculate_relevance_score,
 };
 
 #[test]
