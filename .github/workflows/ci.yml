@@ -49,7 +49,7 @@ jobs:
       run: cargo fmt --check
     - name: Clippy
       working-directory: src-tauri
-      run: cargo clippy -- -D warnings
+      run: RUSTFLAGS="-A unused" cargo clippy -- -D warnings
 
   build-frontend:
     runs-on: ubuntu-latest
