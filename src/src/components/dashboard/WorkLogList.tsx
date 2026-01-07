@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useWorkLogs } from "../../hooks/useWorkLogs";
+import WorkLogItem from "./WorkLogItem";
 
 export default function WorkLogList() {
   const { workLogs, addWorkLog } = useWorkLogs();
@@ -44,12 +45,7 @@ export default function WorkLogList() {
           </div>
         )}
         {workLogs.map((log) => (
-          <div key={log.id} className="card log-item">
-            <span className="log-project">{log.project}</span>
-            <span className="log-details">
-              {log.hours}h ({log.date})
-            </span>
-          </div>
+          <WorkLogItem key={log.id} log={log} />
         ))}
       </div>
     </section>
