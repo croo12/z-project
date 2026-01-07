@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 
 interface FeedbackFormProps {
   onSubmit: (helpful: boolean, reason: string) => void;
@@ -8,6 +8,7 @@ interface FeedbackFormProps {
 export default function FeedbackForm({ onSubmit, onCancel }: FeedbackFormProps) {
   const [reason, setReason] = useState("");
   const [showReasonError, setShowReasonError] = useState(false);
+  const errorId = useId();
 
   const handleSubmit = (helpful: boolean) => {
     if (!reason.trim()) {
@@ -29,15 +30,34 @@ export default function FeedbackForm({ onSubmit, onCancel }: FeedbackFormProps) 
           }}
           placeholder="Reason..."
           autoFocus
+          aria-label="Reason for feedback"
+          aria-invalid={showReasonError}
+          aria-describedby={showReasonError ? errorId : undefined}
         />
-        <button onClick={() => handleSubmit(true)}>👍</button>
-        <button onClick={() => handleSubmit(false)}>👎</button>
+        <button
+          onClick={() => handleSubmit(true)}
+          aria-label="Mark as helpful"
+          title="Mark as helpful"
+        >
+          👍
+        </button>
+        <button
+          onClick={() => handleSubmit(false)}
+          aria-label="Mark as not helpful"
+          title="Mark as not helpful"
+        >
+          👎
+        </button>
         <button onClick={onCancel} style={{ background: "#888" }}>
           Cancel
         </button>
       </div>
       {showReasonError && (
-        <p style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}>
+        <p
+          id={errorId}
+          style={{ color: "red", fontSize: "0.8rem", marginTop: "0.25rem" }}
+          role="alert"
+        >
           Please provide a reason.
         </p>
       )}
