@@ -145,9 +145,45 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         let tx = conn.transaction()?;
         let mut new_count = 0;
 
+        // Optimization: Batch fetching existing tags to avoid N+1 queries.
+        let urls: Vec<String> = articles.iter().map(|a| a.url.clone()).collect();
+        if urls.is_empty() {
+            return Ok(0);
+        }
+
+        let mut existing_map: std::collections::HashMap<String, Vec<ArticleCategory>> =
+            std::collections::HashMap::new();
+
         {
-            // Prepare statements for reuse
-            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
+            // Build dynamic IN clause using chunks to avoid SQLite variable limit (usually 999 or 32766)
+            for chunk in urls.chunks(900) {
+                let placeholders: String = std::iter::repeat("?")
+                    .take(chunk.len())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let sql = format!(
+                    "SELECT url, tags FROM articles WHERE url IN ({})",
+                    placeholders
+                );
+
+                let mut stmt = tx.prepare(&sql)?;
+                let rows = stmt.query_map(rusqlite::params_from_iter(chunk.iter()), |row| {
+                    let url: String = row.get(0)?;
+                    let tags_str: String = row.get(1)?;
+                    let tags: Vec<ArticleCategory> =
+                        serde_json::from_str(&tags_str).unwrap_or_default();
+                    Ok((url, tags))
+                })?;
+
+                for row in rows {
+                    if let Ok((url, tags)) = row {
+                        existing_map.insert(url, tags);
+                    }
+                }
+            }
+        }
+
+        {
             let mut stmt_insert = tx.prepare_cached(
                 "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
@@ -155,35 +191,30 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             )?;
 
             for article in articles {
-                // Check if exists
-                let tags_json: Option<String> = stmt_check
-                    .query_row(rusqlite::params![article.url], |row| row.get(0))
-                    .optional()?;
+                let mut current_tags =
+                    existing_map.get(&article.url).cloned().unwrap_or_else(|| {
+                        new_count += 1;
+                        vec![]
+                    });
 
-                let final_tags = if let Some(tags_str) = tags_json {
-                    // Merge
-                    let mut current_tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
-                    for new_tag in article.tags {
-                        if !current_tags.contains(&new_tag) {
-                            current_tags.push(new_tag);
-                        }
+                // Merge tags
+                for new_tag in &article.tags {
+                    if !current_tags.contains(new_tag) {
+                        current_tags.push(new_tag.clone());
                     }
-                    current_tags
-                } else {
-                    // New
-                    new_count += 1;
-                    article.tags
-                };
+                }
 
-                let tags_json_new = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+                // Update map for subsequent iterations in case of duplicates in input
+                existing_map.insert(article.url.clone(), current_tags.clone());
+
+                let tags_json = serde_json::to_string(&current_tags).unwrap_or("[]".to_string());
 
                 stmt_insert.execute(rusqlite::params![
                     article.id,
                     article.title,
                     article.summary,
                     article.url,
-                    tags_json_new,
+                    tags_json,
                     article.published_at,
                     article.image_url,
                     article.author,
@@ -221,5 +252,95 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             |row| row.get(0),
         )?;
         Ok(count)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::features::recommendation::model::ArticleCategory;
+    use r2d2::Pool;
+    use r2d2_sqlite::SqliteConnectionManager;
+
+    // Helper to setup in-memory DB
+    fn setup_repo() -> SqliteRecommendationRepository {
+        let manager = SqliteConnectionManager::memory();
+        let pool = Pool::new(manager).unwrap();
+        let repo = SqliteRecommendationRepository::new(pool);
+
+        // Init schema manually since we don't have access to init_db here easily
+        // and we want a clean state.
+        let conn = repo.pool.get().unwrap();
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS articles (
+                id TEXT PRIMARY KEY,
+                title TEXT,
+                summary TEXT,
+                url TEXT UNIQUE,
+                tags TEXT,
+                published_at TEXT,
+                image_url TEXT NULL,
+                author TEXT NULL,
+                feedback_helpful BOOLEAN NULL,
+                feedback_reason TEXT NULL,
+                feedback_at TEXT NULL
+            )",
+            [],
+        )
+        .unwrap();
+
+        repo
+    }
+
+    // Default implementation for Article is not derived in model.rs, so we create a helper
+    fn create_dummy_article(url: &str, tags: Vec<ArticleCategory>) -> Article {
+        Article {
+            id: url.to_string(), // Use URL as ID for simplicity
+            title: "Title".to_string(),
+            summary: "Summary".to_string(),
+            url: url.to_string(),
+            tags,
+            published_at: "2023-01-01".to_string(),
+            feedback: None,
+            image_url: None,
+            author: None,
+        }
+    }
+
+    #[test]
+    fn test_upsert_articles_logic() {
+        let repo = setup_repo();
+
+        // 1. Insert new
+        let a1 = create_dummy_article("url1", vec![ArticleCategory::Rust]);
+        let count = repo.upsert_articles(vec![a1]).unwrap();
+        assert_eq!(count, 1);
+
+        // Verify
+        let tags_json = repo.check_article_exists("url1").unwrap();
+        assert!(tags_json.is_some());
+        assert!(tags_json.unwrap().contains("Rust"));
+
+        // 2. Update with new tag
+        let a2 = create_dummy_article("url1", vec![ArticleCategory::React]);
+        let count = repo.upsert_articles(vec![a2]).unwrap();
+        assert_eq!(count, 0); // Not new
+
+        let tags_json = repo.check_article_exists("url1").unwrap();
+        let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_json.unwrap()).unwrap();
+        assert!(tags.contains(&ArticleCategory::Rust));
+        assert!(tags.contains(&ArticleCategory::React));
+
+        // 3. Batch with duplicates (A3 has two entries in the batch)
+        let a3_1 = create_dummy_article("url2", vec![ArticleCategory::Rust]);
+        let a3_2 = create_dummy_article("url2", vec![ArticleCategory::Tauri]);
+
+        let count = repo.upsert_articles(vec![a3_1, a3_2]).unwrap();
+        assert_eq!(count, 1); // Only 1 new article (url2)
+
+        let tags_json = repo.check_article_exists("url2").unwrap();
+        let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_json.unwrap()).unwrap();
+        assert!(tags.contains(&ArticleCategory::Rust));
+        assert!(tags.contains(&ArticleCategory::Tauri));
     }
 }
