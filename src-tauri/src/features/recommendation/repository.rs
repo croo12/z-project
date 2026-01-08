@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use rusqlite::OptionalExtension;
+use std::collections::HashMap;
 
 pub trait RecommendationRepository: Send + Sync {
     fn get_articles(&self) -> Result<Vec<Article>, AppError>;
@@ -141,13 +142,50 @@ impl RecommendationRepository for SqliteRecommendationRepository {
     }
 
     fn upsert_articles(&self, articles: Vec<Article>) -> Result<usize, AppError> {
+        if articles.is_empty() {
+            return Ok(0);
+        }
+
         let mut conn = self.pool.get()?;
         let tx = conn.transaction()?;
         let mut new_count = 0;
 
+        // Optimization: Batch fetch existing tags to avoid N+1 SELECT queries
+        let urls: Vec<String> = articles.iter().map(|a| a.url.clone()).collect();
+        let mut existing_tags_map: HashMap<String, Vec<ArticleCategory>> = HashMap::new();
+
+        // 999 is the default limit for SQLite variables.
+        // We chunk the URLs to be safe, though for RSS feeds it rarely exceeds this.
+        for chunk in urls.chunks(900) {
+            if chunk.is_empty() {
+                continue;
+            }
+
+            let placeholders: Vec<String> =
+                (0..chunk.len()).map(|i| format!("?{}", i + 1)).collect();
+            let query = format!(
+                "SELECT url, tags FROM articles WHERE url IN ({})",
+                placeholders.join(",")
+            );
+
+            let mut stmt = tx.prepare(&query)?;
+            let rows = stmt.query_map(rusqlite::params_from_iter(chunk), |row| {
+                let url: String = row.get(0)?;
+                let tags_str: String = row.get(1)?;
+                Ok((url, tags_str))
+            })?;
+
+            for row in rows {
+                if let Ok((url, tags_str)) = row {
+                    let tags: Vec<ArticleCategory> =
+                        serde_json::from_str(&tags_str).unwrap_or_default();
+                    existing_tags_map.insert(url, tags);
+                }
+            }
+        }
+
         {
-            // Prepare statements for reuse
-            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
+            // Prepare insert statement
             let mut stmt_insert = tx.prepare_cached(
                 "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
@@ -155,26 +193,26 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             )?;
 
             for article in articles {
-                // Check if exists
-                let tags_json: Option<String> = stmt_check
-                    .query_row(rusqlite::params![article.url], |row| row.get(0))
-                    .optional()?;
+                // Check if exists in our pre-fetched map
+                let existing_tags = existing_tags_map.get(&article.url);
 
-                let final_tags = if let Some(tags_str) = tags_json {
+                let final_tags = if let Some(current_tags) = existing_tags {
                     // Merge
-                    let mut current_tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
-                    for new_tag in article.tags {
-                        if !current_tags.contains(&new_tag) {
-                            current_tags.push(new_tag);
+                    let mut merged = current_tags.clone();
+                    for new_tag in &article.tags {
+                        if !merged.contains(new_tag) {
+                            merged.push(new_tag.clone());
                         }
                     }
-                    current_tags
+                    merged
                 } else {
                     // New
                     new_count += 1;
-                    article.tags
+                    article.tags.clone()
                 };
+
+                // Update the map for subsequent iterations in the same batch (handling duplicate URLs in input)
+                existing_tags_map.insert(article.url.clone(), final_tags.clone());
 
                 let tags_json_new = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
 
