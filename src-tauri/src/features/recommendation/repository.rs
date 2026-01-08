@@ -178,7 +178,10 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             for row in rows {
                 if let Ok((url, tags_str)) = row {
                     let tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
+                        serde_json::from_str(&tags_str).unwrap_or_else(|_| {
+                            eprintln!("Failed to deserialize tags for url: {}", url);
+                            Default::default()
+                        });
                     existing_tags_map.insert(url, tags);
                 }
             }
