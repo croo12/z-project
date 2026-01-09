@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { Article, ArticleCategory } from "../types";
 import FeedbackForm from "./FeedbackForm";
+import { cn } from "../lib/utils";
 
 interface ArticleCardProps {
   article: Article;
@@ -9,20 +10,20 @@ interface ArticleCardProps {
   onSubmitFeedback: (id: string, helpful: boolean, reason: string) => void;
 }
 
-function getCategoryColor(cat: ArticleCategory): string {
+function getCategoryColorClass(cat: ArticleCategory): string {
   switch (cat) {
     case "Rust":
-      return "#dea584";
+      return "text-[#dea584] border-[#dea584]";
     case "React":
-      return "#61dafb";
+      return "text-[#61dafb] border-[#61dafb]";
     case "Android":
-      return "#3ddc84";
+      return "text-[#3ddc84] border-[#3ddc84]";
     case "Tauri":
-      return "#ffc131";
+      return "text-[#ffc131] border-[#ffc131]";
     case "TypeScript":
-      return "#3178c6";
+      return "text-[#3178c6] border-[#3178c6]";
     default:
-      return "#888";
+      return "text-foreground border-foreground";
   }
 }
 
@@ -32,81 +33,71 @@ const ArticleCard = memo(function ArticleCard({
   onSetFeedbackingId,
   onSubmitFeedback,
 }: ArticleCardProps) {
-  const primaryTag = article.tags[0] || "General";
+
   return (
-    <div
-      className="card article-item"
-      style={{ borderLeft: `4px solid ${getCategoryColor(primaryTag)}` }}
-    >
-      <div
-        style={{
-          display: "flex",
-          gap: "4px",
-          flexWrap: "wrap",
-          marginBottom: "8px",
-        }}
-      >
+    <div className={cn(
+      "relative bg-white border-[3px] border-foreground p-6 mb-8 transition-all duration-300",
+      "shadow-hard hover:shadow-hard-hover hover:-translate-y-1 hover:rotate-1",
+      "rounded-wobbly"
+    )}>
+      {/* Tape Decoration */}
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-32 h-8 bg-gray-200/50 rotate-[-2deg] pointer-events-none z-10"></div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
         {article.tags.map((tag) => (
           <span
             key={tag}
-            style={{
-              fontSize: "0.7rem",
-              fontWeight: "bold",
-              color: "#fff",
-              backgroundColor: getCategoryColor(tag),
-              padding: "2px 6px",
-              borderRadius: "4px",
-            }}
+            className={cn(
+              "px-2 py-0.5 text-xs font-bold font-sans border border-current rounded-full bg-white",
+              getCategoryColorClass(tag)
+            )}
           >
-            {tag}
+            #{tag}
           </span>
         ))}
-        <span style={{ fontSize: "0.8rem", color: "#888", marginLeft: "auto" }}>
+        <span className="ml-auto text-xs text-foreground/60 font-sans">
           {new Date(article.published_at).toLocaleDateString()}
         </span>
       </div>
-      <h3>{article.title}</h3>
+
+      <h3 className="text-2xl font-heading font-bold mb-3 leading-tight">{article.title}</h3>
+
       {article.image_url && (
-        <img
-          src={article.image_url}
-          alt={article.title}
-          loading="lazy"
-          style={{
-            width: "100%",
-            height: "150px",
-            objectFit: "cover",
-            borderRadius: "4px",
-            marginBottom: "0.5rem",
-          }}
-        />
+        <div className="mb-4 relative border-2 border-foreground p-1 bg-white rounded-wobbly rotate-[-1deg]">
+            <img
+            src={article.image_url}
+            alt={article.title}
+            loading="lazy"
+            className="w-full h-40 object-cover rounded-wobbly"
+            />
+        </div>
       )}
-      <p>{article.summary}</p>
+
+      <p className="font-sans text-lg leading-relaxed mb-4 text-foreground/90">{article.summary}</p>
+
       {article.author && (
-        <small
-          style={{ display: "block", color: "#666", marginBottom: "0.5rem" }}
-        >
-          By {article.author}
+        <small className="block text-foreground/60 font-sans mb-4 italic">
+          — {article.author}
         </small>
       )}
-      <a href={article.url} target="_blank" className="news-link" rel="noreferrer">
+
+      <a
+        href={article.url}
+        target="_blank"
+        className="inline-block font-heading font-bold text-blue hover:text-accent decoration-wavy underline text-lg mb-6 transition-colors"
+        rel="noreferrer"
+      >
         Read Article &rarr;
       </a>
 
       {/* Feedback UI */}
-      <div
-        className="feedback-section"
-        style={{
-          marginTop: "1rem",
-          borderTop: "1px solid #eee",
-          paddingTop: "0.5rem",
-        }}
-      >
+      <div className="pt-4 border-t-2 border-dashed border-foreground/20">
         {article.feedback ? (
-          <small>
-            Feedback:{" "}
-            {article.feedback.is_helpful ? "👍 Helpful" : "👎 Not Helpful"}(
-            {article.feedback.reason})
-          </small>
+          <div className="font-sans text-sm">
+            <span className="font-bold">Feedback:</span>{" "}
+            {article.feedback.is_helpful ? "👍 Helpful" : "👎 Not Helpful"}
+            {article.feedback.reason && <span className="text-foreground/60"> ({article.feedback.reason})</span>}
+          </div>
         ) : isFeedbacking ? (
           <FeedbackForm
             onSubmit={(helpful, reason) =>
@@ -117,13 +108,7 @@ const ArticleCard = memo(function ArticleCard({
         ) : (
           <button
             onClick={() => onSetFeedbackingId(article.id)}
-            style={{
-              fontSize: "0.8rem",
-              padding: "4px 8px",
-              background: "transparent",
-              color: "#888",
-              border: "1px solid #eee",
-            }}
+            className="text-sm font-sans font-bold text-foreground/60 hover:text-blue hover:underline decoration-dashed"
           >
             Rate this article
           </button>

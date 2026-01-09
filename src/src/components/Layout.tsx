@@ -9,8 +9,10 @@ interface Props {
 
 export default function Layout({ children, currentTab, onTabChange }: Props) {
   return (
-    <div className="app-layout">
-      <main className="app-content">{children}</main>
+    <div className="min-h-screen pb-24">
+      <main className="max-w-5xl mx-auto px-6 py-10 md:py-20">
+        {children}
+      </main>
       <BottomNav currentTab={currentTab} onTabChange={onTabChange} />
     </div>
   );

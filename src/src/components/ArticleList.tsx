@@ -2,8 +2,8 @@ import { useState, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ArticleCategory } from "../types";
 import type { Article } from "../types";
-import "../App.css";
 import ArticleCard from "./ArticleCard";
+import { cn } from "../lib/utils";
 
 const CATEGORIES: ArticleCategory[] = Object.values(ArticleCategory);
 
@@ -48,22 +48,25 @@ export default function ArticleList({
   );
 
   return (
-    <div className="article-list-container">
-      <div
-        className="controls"
-        style={{
-          display: "flex",
-          gap: "8px",
-          flexWrap: "wrap",
-          marginBottom: "1rem",
-        }}
-      >
-        <button onClick={handleRefresh} disabled={loading}>
+    <div className="relative">
+      <div className="flex flex-wrap gap-2 mb-6 p-4 bg-white border-2 border-foreground rounded-wobbly shadow-hard rotate-[-0.5deg]">
+        <button
+          onClick={handleRefresh}
+          disabled={loading}
+          className={cn(
+            "px-4 py-2 font-heading font-bold bg-foreground text-white border-2 border-transparent rounded-wobbly",
+            "hover:bg-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          )}
+        >
           {loading ? "Refreshing..." : "Refresh RSS"}
         </button>
+        <div className="w-px h-8 bg-foreground/20 mx-2 self-center"></div>
         <button
           onClick={() => setFilter("All")}
-          className={filter === "All" ? "active" : ""}
+          className={cn(
+            "px-3 py-1 font-sans font-bold border-2 border-transparent hover:border-foreground rounded-full transition-all",
+            filter === "All" ? "bg-post-it border-foreground shadow-sm rotate-[-1deg]" : "text-foreground/60"
+          )}
         >
           All
         </button>
@@ -71,15 +74,17 @@ export default function ArticleList({
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={filter === cat ? "active" : ""}
-            style={{ opacity: filter === cat ? 1 : 0.7 }}
+            className={cn(
+                "px-3 py-1 font-sans font-bold border-2 border-transparent hover:border-foreground rounded-full transition-all",
+                filter === cat ? "bg-post-it border-foreground shadow-sm rotate-1" : "text-foreground/60"
+            )}
           >
             {cat}
           </button>
         ))}
       </div>
 
-      <div className="articles-grid" style={{ display: "grid", gap: "1rem" }}>
+      <div className="space-y-8">
         {filtered.map((article) => (
           <ArticleCard
             key={article.id}
@@ -89,7 +94,12 @@ export default function ArticleList({
             onSubmitFeedback={handleSubmitFeedback}
           />
         ))}
-        {filtered.length === 0 && <p>No articles found.</p>}
+        {filtered.length === 0 && (
+          <div className="text-center py-20 opacity-60">
+            <p className="font-heading text-3xl mb-2">No articles found.</p>
+            <p className="font-sans">Try refreshing or changing filters.</p>
+          </div>
+        )}
       </div>
     </div>
   );

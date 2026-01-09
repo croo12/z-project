@@ -46,24 +46,36 @@ export function CategorySelector({ className }: CategorySelectorProps) {
     }
   }
 
-  if (loading) return <div>Loading interests...</div>;
+  if (loading) return <div className="font-sans text-muted-foreground animate-pulse">Loading interests...</div>;
 
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>
-      {categories.map((category) => (
-        <button
-          key={category}
-          onClick={() => toggleCategory(category)}
-          className={cn(
-            "px-3 py-1.5 rounded-full text-sm font-medium transition-colors border",
-            selected.includes(category)
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-background text-muted-foreground border-input hover:bg-accent hover:text-accent-foreground"
-          )}
-        >
-          {category}
-        </button>
-      ))}
+    <div className={cn("flex flex-wrap gap-3", className)}>
+      {categories.map((category, index) => {
+        const isSelected = selected.includes(category);
+        // Vary rotation slightly based on index
+        const rotation = index % 2 === 0 ? "hover:-rotate-1" : "hover:rotate-1";
+        const baseRotation = index % 3 === 0 ? "rotate-1" : index % 3 === 1 ? "-rotate-1" : "rotate-0";
+
+        return (
+          <button
+            key={category}
+            onClick={() => toggleCategory(category)}
+            className={cn(
+              "px-4 py-2 font-sans font-bold text-sm transition-all duration-200 border-2",
+              "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]",
+              "rounded-wobbly",
+              rotation,
+              baseRotation,
+              isSelected
+                ? "bg-post-it text-foreground border-foreground scale-105"
+                : "bg-white text-foreground/60 border-foreground/30 hover:border-foreground hover:bg-white"
+            )}
+          >
+            {isSelected && <span className="mr-1">✓</span>}
+            {category}
+          </button>
+        );
+      })}
     </div>
   );
 }
