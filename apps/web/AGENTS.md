@@ -30,7 +30,7 @@ This app is designed to help the user (a frontend developer) stay updated with t
 - **CI/CD**: GitHub Actions pipeline triggering `npm run build` and checking linting rules.
 
 ## Project Scope
-This directory (`src/`) contains the Frontend application built with **React 19**, **Vite**, and **Tailwind CSS**.
+This directory (`apps/web/src/`) contains the Frontend application built with **React 19**, **Vite**, and **Tailwind CSS**.
 
 ## Technology Stack
 - **Framework**: React 19
@@ -47,13 +47,13 @@ This directory (`src/`) contains the Frontend application built with **React 19*
 - Follows a modified Feature-Sliced Design (FSD).
 - Top-level directories: `components`, `hooks`, `utils`, `types`, `recoil`.
 - Recommendations:
-    - Generic UI components -> `shared/ui`
-    - Business logic hooks/utils/types -> Feature/Entity slices or `shared/lib`
-    - Recoil setup -> `app/providers`
+    - Generic UI components -> `apps/web/src/shared/ui`
+    - Business logic hooks/utils/types -> Feature/Entity slices or `apps/web/src/shared/lib`
+    - Recoil setup -> `apps/web/src/app/providers`
 
 ## Critical Rules for Agents
-1. **Context Awareness**: All frontend code changes must be within `src/`. Do not touch `src-tauri/` unless specifically instructed for backend integration.
-2. **Component usage**: Prefer using existing UI components from `src/components` or `src/shared/ui` over creating duplicates.
+1. **Context Awareness**: All frontend code changes must be within `apps/web/src/`. Do not touch `apps/mobile/src-tauri/` unless specifically instructed for backend integration.
+2. **Component usage**: Prefer using existing UI components from `apps/web/src/components` or `apps/web/src/shared/ui` over creating duplicates.
 
 ### Pull Request (PR) Requirements
 > [!IMPORTANT]
