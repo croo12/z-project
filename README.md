@@ -3,9 +3,10 @@
 This is a Tauri v2 application built with Rust (Backend) and Vanilla JS (Frontend).
 
 ## Features
-- **News**: Recommended news feed.
+- **News**: RSS-based news feed with keyword-based categorization.
 - **Todos**: Manage your daily tasks.
 - **Work Log**: Track your work hours.
+- **Android Support**: Fully compatible with Android devices via Tauri v2.
 
 ## Prerequisites
 - **Rust**: Standard installation.
