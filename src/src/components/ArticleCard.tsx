@@ -33,7 +33,6 @@ const ArticleCard = memo(function ArticleCard({
   onSetFeedbackingId,
   onSubmitFeedback,
 }: ArticleCardProps) {
-  const primaryTag = article.tags[0] || "General";
 
   return (
     <div className={cn(
