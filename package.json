@@ -1,17 +1,18 @@
 {
-  "name": "tauri-app",
+  "name": "@z-project/root",
   "private": true,
-  "version": "0.1.6",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "tauri": "tauri",
+    "dev:web": "pnpm --filter @z-project/web dev",
+    "dev:mobile": "pnpm --filter @z-project/mobile tauri android dev",
+    "build:web": "pnpm --filter @z-project/web build",
+    "tauri": "pnpm --filter @z-project/mobile tauri",
     "prepare": "husky",
-    "lint": "eslint src",
-    "format": "prettier --write src",
-    "format:check": "prettier --check src"
+    "format": "prettier --write .",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
     "eslint": "^9.39.2",
     "husky": "^9.1.7",
     "prettier": "^3.7.4"
