@@ -4,10 +4,10 @@
   "version": "0.1.6",
   "identifier": "com.zproject.app",
   "build": {
-    "beforeDevCommand": "npm run dev --prefix src",
-    "beforeBuildCommand": "npm run build --prefix src",
+    "beforeDevCommand": "pnpm --filter @z-project/web dev",
+    "beforeBuildCommand": "pnpm --filter @z-project/web build",
     "devUrl": "http://localhost:5173",
-    "frontendDist": "../src/dist"
+    "frontendDist": "../../web/dist"
   },
   "app": {
     "withGlobalTauri": true,

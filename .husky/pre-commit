@@ -1,12 +1,12 @@
 export PATH="$PATH:/c/Users/jimmy/.cargo/bin"
-# Run Cargo Format
-cargo fmt -- --check
+# Run Cargo Format (Mobile App)
+cd apps/mobile/src-tauri && cargo fmt -- --check && cd ../../..
 
-# Run Cargo Clippy (Lint)
-cargo clippy -- -D warnings
+# Run Cargo Clippy (Mobile App)
+cd apps/mobile/src-tauri && cargo clippy -- -D warnings && cd ../../..
 
 # Run Frontend Lint
-npm run lint
+pnpm --filter @z-project/web lint
 
 # Run Frontend Format Check
-npm run format:check
+pnpm --filter @z-project/web format:check
