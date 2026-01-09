@@ -146,51 +146,77 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         let mut new_count = 0;
 
         {
-            // Prepare statements for reuse
-            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
             let mut stmt_insert = tx.prepare_cached(
                 "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
                  ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6, image_url = ?7, author = ?8"
             )?;
 
-            for article in articles {
-                // Check if exists
-                let tags_json: Option<String> = stmt_check
-                    .query_row(rusqlite::params![article.url], |row| row.get(0))
-                    .optional()?;
+            // Optimization: Batch check existing tags
+            // Process in chunks to avoid SQLite variable limit (default 999 or 32766)
+            for chunk in articles.chunks(100) {
+                let urls: Vec<&str> = chunk.iter().map(|a| a.url.as_str()).collect();
 
-                let final_tags = if let Some(tags_str) = tags_json {
-                    // Merge
-                    let mut current_tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
-                    for new_tag in article.tags {
-                        if !current_tags.contains(&new_tag) {
-                            current_tags.push(new_tag);
+                // Build dynamic query: SELECT url, tags FROM articles WHERE url IN (?, ?, ...)
+                let placeholders: Vec<String> = (0..urls.len()).map(|_| "?".to_string()).collect();
+                let query = format!(
+                    "SELECT url, tags FROM articles WHERE url IN ({})",
+                    placeholders.join(",")
+                );
+
+                let mut existing_tags_map = std::collections::HashMap::new();
+                {
+                    let mut stmt_check_batch = tx.prepare(&query)?;
+                    let params = rusqlite::params_from_iter(urls.iter());
+                    let rows = stmt_check_batch.query_map(params, |row| {
+                        let url: String = row.get(0)?;
+                        let tags: String = row.get(1)?;
+                        Ok((url, tags))
+                    })?;
+
+                    for row in rows {
+                        if let Ok((url, tags)) = row {
+                            existing_tags_map.insert(url, tags);
                         }
                     }
-                    current_tags
-                } else {
-                    // New
-                    new_count += 1;
-                    article.tags
-                };
+                }
 
-                let tags_json_new = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+                for article in chunk {
+                    let tags_json = existing_tags_map.get(&article.url);
 
-                stmt_insert.execute(rusqlite::params![
-                    article.id,
-                    article.title,
-                    article.summary,
-                    article.url,
-                    tags_json_new,
-                    article.published_at,
-                    article.image_url,
-                    article.author,
-                    article.feedback.as_ref().map(|f| f.is_helpful),
-                    article.feedback.as_ref().map(|f| f.reason.clone()),
-                    article.feedback.as_ref().map(|f| f.created_at.clone())
-                ])?;
+                    let final_tags = if let Some(tags_str) = tags_json {
+                        // Merge
+                        let mut current_tags: Vec<ArticleCategory> =
+                            serde_json::from_str(tags_str).unwrap_or_default();
+                        for new_tag in &article.tags {
+                            if !current_tags.contains(new_tag) {
+                                current_tags.push(new_tag.clone());
+                            }
+                        }
+                        current_tags
+                    } else {
+                        // New
+                        new_count += 1;
+                        article.tags.clone()
+                    };
+
+                    let tags_json_new =
+                        serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+
+                    stmt_insert.execute(rusqlite::params![
+                        article.id,
+                        article.title,
+                        article.summary,
+                        article.url,
+                        tags_json_new,
+                        article.published_at,
+                        article.image_url,
+                        article.author,
+                        article.feedback.as_ref().map(|f| f.is_helpful),
+                        article.feedback.as_ref().map(|f| f.reason.clone()),
+                        article.feedback.as_ref().map(|f| f.created_at.clone())
+                    ])?;
+                }
             }
         }
 
