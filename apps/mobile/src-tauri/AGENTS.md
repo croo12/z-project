@@ -27,7 +27,7 @@ This app is designed to help the user (a frontend developer) stay updated with t
 - **Signing**: Configured via environment variables injected during `tauri android build`.
 
 ## Project Scope
-This directory (`src-tauri/`) contains the Backend application built with **Rust** and **Tauri v2**.
+This directory (`apps/mobile/src-tauri/`) contains the Backend application built with **Rust** and **Tauri v2**.
 
 ## Technology Stack
 - **Framework**: Tauri v2
@@ -48,7 +48,7 @@ This directory (`src-tauri/`) contains the Backend application built with **Rust
 - `src/features/`: Feature modules (e.g., `recommendation`, `worklog`).
 
 ## Critical Rules for Agents
-1. **Context Awareness**: All backend code changes must be within `src-tauri/`.
+1. **Context Awareness**: All backend code changes must be within `apps/mobile/src-tauri/`.
 2. **Error Handling**: Use `Result` and appropriate error types. Avoid `unwrap()` in production code.
 
 ### Pull Request (PR) Requirements

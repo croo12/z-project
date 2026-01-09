@@ -8,8 +8,8 @@ This project aims to build an application helps frontend developers stay updated
 ## Navigation
 Depending on your task scope, refer to the specific guides below:
 
-- **Frontend (React/Vite)**: [src/AGENTS.md](src/AGENTS.md)
-- **Backend (Rust/Tauri)**: [src-tauri/AGENTS.md](src-tauri/AGENTS.md)
+- **Frontend (React/Vite)**: [apps/web/AGENTS.md](apps/web/AGENTS.md)
+- **Backend (Rust/Tauri)**: [apps/mobile/src-tauri/AGENTS.md](apps/mobile/src-tauri/AGENTS.md)
 
 ## Global Rules for Agents
 
