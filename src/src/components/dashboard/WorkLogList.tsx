@@ -1,9 +1,13 @@
 import React, { useState } from "react";
-import { useWorkLogs } from "../../hooks/useWorkLogs";
+import { WorkLog } from "../../types";
 import WorkLogItem from "./WorkLogItem";
 
-export default function WorkLogList() {
-  const { workLogs, addWorkLog } = useWorkLogs();
+interface WorkLogListProps {
+  workLogs: WorkLog[];
+  addWorkLog: (project: string, hours: number) => Promise<void>;
+}
+
+export default function WorkLogList({ workLogs, addWorkLog }: WorkLogListProps) {
   const [workProject, setWorkProject] = useState("");
   const [workHours, setWorkHours] = useState("");
 

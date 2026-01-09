@@ -1,11 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
-export interface TodoItem {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+import { TodoItem } from "../types";
 
 export function useTodos() {
   const [todos, setTodos] = useState<TodoItem[]>([]);

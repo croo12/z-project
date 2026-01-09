@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { WorkLog } from "../../hooks/useWorkLogs";
+import type { WorkLog } from "../../types";
 
 interface WorkLogItemProps {
   log: WorkLog;

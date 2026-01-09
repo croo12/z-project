@@ -1,5 +1,5 @@
 import { memo } from "react";
-import type { TodoItem as TodoItemType } from "../../hooks/useTodos";
+import type { TodoItem as TodoItemType } from "../../types";
 
 interface TodoItemProps {
   todo: TodoItemType;

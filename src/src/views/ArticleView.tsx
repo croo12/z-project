@@ -1,28 +1,15 @@
-import { useState, useEffect, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useState } from "react";
 import ArticleList from "../components/ArticleList";
 import { CategorySelector } from "../components/CategorySelector";
 import type { Article } from "../types";
 import "../App.css";
 
-export default function ArticleView() {
-  const [articles, setArticles] = useState<Article[]>([]);
+interface ArticleViewProps {
+  articles: Article[];
+  onRefresh: () => void;
+}
 
-  const refreshArticles = useCallback(async () => {
-    console.log("Refreshing articles...");
-    try {
-      const data = await invoke<Article[]>("get_recommended_articles");
-      setArticles(data);
-    } catch (e) {
-      console.error("Failed to fetch articles", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshArticles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+export default function ArticleView({ articles, onRefresh }: ArticleViewProps) {
   const [showSettings, setShowSettings] = useState(false);
 
   return (
@@ -47,8 +34,8 @@ export default function ArticleView() {
 
       <ArticleList
         articles={articles}
-        onRefresh={refreshArticles}
-        onFeedbackUpdate={refreshArticles}
+        onRefresh={onRefresh}
+        onFeedbackUpdate={onRefresh}
       />
     </div>
   );

@@ -1,12 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-
-export interface WorkLog {
-  id: number;
-  project: string;
-  hours: number;
-  date: string;
-}
+import { WorkLog } from "../types";
 
 export function useWorkLogs() {
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);

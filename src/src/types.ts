@@ -30,3 +30,16 @@ export interface Article {
   image_url?: string;
   author?: string;
 }
+
+export interface TodoItem {
+  id: number;
+  text: string;
+  completed: boolean;
+}
+
+export interface WorkLog {
+  id: number;
+  project: string;
+  hours: number;
+  date: string;
+}

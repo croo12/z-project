@@ -1,9 +1,14 @@
 import React, { useState } from "react";
-import { useTodos } from "../../hooks/useTodos";
+import { TodoItem as TodoItemType } from "../../types";
 import TodoItem from "./TodoItem";
 
-export default function TodoList() {
-  const { todos, addTodo, toggleTodo } = useTodos();
+interface TodoListProps {
+  todos: TodoItemType[];
+  addTodo: (text: string) => Promise<void>;
+  toggleTodo: (id: number) => Promise<void>;
+}
+
+export default function TodoList({ todos, addTodo, toggleTodo }: TodoListProps) {
   const [todoInput, setTodoInput] = useState("");
 
   const handleAddTodo = async (e: React.FormEvent) => {
