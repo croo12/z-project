@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use rusqlite::OptionalExtension;
+use std::collections::HashMap;
 
 pub trait RecommendationRepository: Send + Sync {
     fn get_articles(&self) -> Result<Vec<Article>, AppError>;
@@ -146,51 +147,85 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         let mut new_count = 0;
 
         {
-            // Prepare statements for reuse
-            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
+            // Prepare statement for insert/update
             let mut stmt_insert = tx.prepare_cached(
                 "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
                  ON CONFLICT(url) DO UPDATE SET tags = ?5, published_at = ?6, image_url = ?7, author = ?8"
             )?;
 
-            for article in articles {
-                // Check if exists
-                let tags_json: Option<String> = stmt_check
-                    .query_row(rusqlite::params![article.url], |row| row.get(0))
-                    .optional()?;
+            // Process in chunks to avoid SQLite variable limit (default is often 999 or 32766)
+            for chunk in articles.chunks(500) {
+                // 1. Collect URLs for this chunk
+                let urls: Vec<&str> = chunk.iter().map(|a| a.url.as_str()).collect();
 
-                let final_tags = if let Some(tags_str) = tags_json {
-                    // Merge
-                    let mut current_tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
-                    for new_tag in article.tags {
-                        if !current_tags.contains(&new_tag) {
-                            current_tags.push(new_tag);
+                // 2. Batch fetch existing tags
+                // Construct "SELECT url, tags FROM articles WHERE url IN (?1, ?2, ...)"
+                let placeholders: Vec<String> = (0..urls.len()).map(|_| "?".to_string()).collect();
+                let query = format!(
+                    "SELECT url, tags FROM articles WHERE url IN ({})",
+                    placeholders.join(",")
+                );
+
+                let mut existing_tags_map: HashMap<String, Vec<ArticleCategory>> = HashMap::new();
+
+                {
+                    let mut stmt_check = tx.prepare(&query)?;
+                    let rows =
+                        stmt_check.query_map(rusqlite::params_from_iter(urls.iter()), |row| {
+                            let url: String = row.get(0)?;
+                            let tags_str: String = row.get(1)?;
+                            let tags: Vec<ArticleCategory> =
+                                serde_json::from_str(&tags_str).unwrap_or_default();
+                            Ok((url, tags))
+                        })?;
+
+                    for row in rows {
+                        if let Ok((url, tags)) = row {
+                            existing_tags_map.insert(url, tags);
                         }
                     }
-                    current_tags
-                } else {
-                    // New
-                    new_count += 1;
-                    article.tags
-                };
+                }
 
-                let tags_json_new = serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+                // 3. Process each article in the chunk
+                for article in chunk {
+                    let current_tags = existing_tags_map.get(&article.url);
 
-                stmt_insert.execute(rusqlite::params![
-                    article.id,
-                    article.title,
-                    article.summary,
-                    article.url,
-                    tags_json_new,
-                    article.published_at,
-                    article.image_url,
-                    article.author,
-                    article.feedback.as_ref().map(|f| f.is_helpful),
-                    article.feedback.as_ref().map(|f| f.reason.clone()),
-                    article.feedback.as_ref().map(|f| f.created_at.clone())
-                ])?;
+                    let final_tags = if let Some(tags) = current_tags {
+                        // Merge
+                        let mut merged = tags.clone();
+                        for new_tag in &article.tags {
+                            if !merged.contains(new_tag) {
+                                merged.push(new_tag.clone());
+                            }
+                        }
+                        merged
+                    } else {
+                        // New
+                        new_count += 1;
+                        article.tags.clone()
+                    };
+
+                    // Update map immediately in case of duplicates within the same chunk
+                    existing_tags_map.insert(article.url.clone(), final_tags.clone());
+
+                    let tags_json_new =
+                        serde_json::to_string(&final_tags).unwrap_or("[]".to_string());
+
+                    stmt_insert.execute(rusqlite::params![
+                        article.id,
+                        article.title,
+                        article.summary,
+                        article.url,
+                        tags_json_new,
+                        article.published_at,
+                        article.image_url,
+                        article.author,
+                        article.feedback.as_ref().map(|f| f.is_helpful),
+                        article.feedback.as_ref().map(|f| f.reason.clone()),
+                        article.feedback.as_ref().map(|f| f.created_at.clone())
+                    ])?;
+                }
             }
         }
 
