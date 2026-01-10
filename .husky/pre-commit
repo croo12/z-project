@@ -1,1 +1,10 @@
+export PATH="$PATH:/c/Users/jimmy/.cargo/bin"
+
+# Run JS/TS Linting and Formatting on staged files
 npx lint-staged
+
+# Run Cargo Format (Mobile App)
+cd apps/mobile/src-tauri && cargo fmt -- --check && cd ../../..
+
+# Run Cargo Clippy (Mobile App)
+cd apps/mobile/src-tauri && cargo clippy -- -D warnings && cd ../../..

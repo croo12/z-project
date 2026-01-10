@@ -32,20 +32,23 @@
 
 ## Phase 3: User Story 1 (P1) - Pre-commit Code Quality Checks
 
-**Goal**: Automatically check staged files for linting errors before commit.
+**Goal**: Automatically check staged files for linting errors before commit, including Rust formatting.
 **Independent Test**: Attempt to commit a file with syntax errors; verified by commit rejection.
 
 - [x] T007 [US1] Configure `.lintstagedrc` to run `eslint --fix` and `prettier --write` on staged `*.{ts,tsx,js,jsx}` files.
 - [x] T008 [US1] Update `.husky/pre-commit` to execute `npx lint-staged`.
+- [x] T008-2 [US1] Update `.husky/pre-commit` to include `cargo fmt -- --check` and `cargo clippy` calls in `apps/mobile/src-tauri`.
 
 ---
 
 ## Phase 4: User Story 2 (P2) - Pre-push Test Verification
 
-**Goal**: Ensure all unit tests pass before pushing to remote.
+**Goal**: Ensure all unit tests pass (including Rust) and build succeeds before pushing.
 **Independent Test**: Push with failing tests; verified by push rejection.
 
 - [x] T009 [US2] Update `.husky/pre-push` to execute `pnpm test`.
+- [x] T009-2 [US2] Update `.husky/pre-push` to execute `cargo test` in `apps/mobile/src-tauri`.
+- [x] T009-3 [US2] Update `.husky/pre-push` to execute `pnpm --filter @z-project/web build`.
 
 ---
 
@@ -62,7 +65,7 @@
 
 **Purpose**: documentation and final verification.
 
-- [x] T011 [P] Add documentation about Git Hooks to `README.md` or `CONTRIBUTING.md`.
+- [ ] T011 [P] Add documentation about Git Hooks to `README.md` or `CONTRIBUTING.md`.
 - [x] T012 Verify entire workflow: Change file -> Commit (Lint) -> Push (Test) -> CI (Lint+Test).
 
 ---

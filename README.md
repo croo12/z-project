@@ -45,8 +45,8 @@ First, ensure Android Studio is installed and `ANDROID_HOME` environment variabl
 
 This project uses **Husky** to enforce quality checks:
 
-- **Pre-commit**: Automatically runs `ESLint` and `Prettier` on staged files.
-- **Pre-push**: Runs all unit tests via `pnpm test`.
+- **Pre-commit**: Automatically runs `ESLint` and `Prettier` on staged files, and `cargo fmt`/`clippy` for Rust.
+- **Pre-push**: Runs all JS/TS tests via `pnpm test`, Rust tests via `cargo test`, and builds the frontend.
 
 To manually run tests:
 ```bash
