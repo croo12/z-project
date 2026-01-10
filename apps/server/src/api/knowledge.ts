@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { ingestionService } from '../services/ingestion.service';
+import { ingestionService } from '../services/ingestion.service.js';
 
 const router = Router();
 

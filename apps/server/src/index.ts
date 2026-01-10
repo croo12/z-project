@@ -1,10 +1,10 @@
 import 'dotenv/config'; // Load environment variables first
 import express from 'express';
-import knowledgeRouter from './api/knowledge';
-import interactionsRouter from './api/interactions';
-import feedbackRouter from './api/feedback';
-import queryRouter from './api/query';
-import logger from './lib/logger';
+import knowledgeRouter from './api/knowledge.js';
+import interactionsRouter from './api/interactions.js';
+import feedbackRouter from './api/feedback.js';
+import queryRouter from './api/query.js';
+import logger from './lib/logger.js';
 
 const app = express();
 const port = process.env.PORT || 3000;

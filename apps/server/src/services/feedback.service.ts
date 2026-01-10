@@ -1,6 +1,7 @@
-import { Interaction, Feedback } from "../types";
+import { Interaction, Feedback } from "../types/index.js";
 import { randomUUID } from "crypto";
-import logger from "../lib/logger";
+import logger from "../lib/logger.js";
+import { vectorStoreService } from "../lib/vector-store.js";
 
 // In-memory store for MVP. Replace with a proper database later.
 const interactions: Map<string, Interaction> = new Map();
@@ -33,6 +34,28 @@ export class FeedbackService {
     feedbacks.set(id, feedback);
     logger.info({ feedbackId: id, interactionId: feedback.interaction_id }, "Stored feedback.");
     logger.debug({ feedbacks }, "Current feedbacks map:");
+
+    // Adjust scores based on feedback
+    const interaction = interactions.get(feedbackData.interaction_id);
+    if (interaction && interaction.source_documents) {
+      for (const docMetadata of interaction.source_documents) {
+        if (docMetadata.id) {
+          const currentScore = docMetadata.retrieval_score_modifier || 1.0;
+          let newScore = currentScore;
+          
+          if (feedback.rating === 'positive') {
+            newScore += 0.1;
+          } else if (feedback.rating === 'negative') {
+            // decay faster? or symmetric?
+            newScore -= 0.1;
+          }
+
+          if (newScore !== currentScore) {
+             await vectorStoreService.updateScore(docMetadata.id, newScore);
+          }
+        }
+      }
+    }
   }
 }
 

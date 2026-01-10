@@ -1,6 +1,6 @@
 import { StateGraph, END } from "@langchain/langgraph";
-import { Document } from "langchain/document";
-import { vectorStoreService } from "../lib/vector-store";
+import { Document } from "@langchain/core/documents";
+import { vectorStoreService } from "../lib/vector-store.js";
 import { ChatOpenAI } from "@langchain/openai";
 import {
   RunnablePassthrough,
@@ -8,10 +8,10 @@ import {
 } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
-import logger from "../lib/logger";
+import logger from "../lib/logger.js";
 
 // The state of our graph
-interface AgentState {
+export interface AgentState {
   query: string;
   context?: any;
   documents: Document[];
@@ -73,7 +73,7 @@ class RAGGraph {
   private async retrieve(state: AgentState): Promise<Partial<AgentState>> {
     logger.info({ query: state.query }, "---RETRIEVING DOCUMENTS---");
     const retriever = vectorStoreService.asRetriever();
-    const documents = await retriever.getRelevantDocuments(state.query);
+    const documents = await retriever.invoke(state.query);
     logger.info(`Retrieved ${documents.length} documents.`);
     return { documents };
   }

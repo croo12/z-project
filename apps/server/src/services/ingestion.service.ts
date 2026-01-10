@@ -1,7 +1,8 @@
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
-import { Document } from "langchain/document";
-import { vectorStoreService } from "../lib/vector-store";
-import logger from "../lib/logger";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { Document } from "@langchain/core/documents";
+import { vectorStoreService } from "../lib/vector-store.js";
+import logger from "../lib/logger.js";
+import crypto from "crypto";
 
 export class IngestionService {
   private textSplitter: RecursiveCharacterTextSplitter;
@@ -17,12 +18,14 @@ export class IngestionService {
     logger.info(`Ingesting content from source: ${source}`);
     
     const chunks = await this.textSplitter.splitText(content);
-
-    const documents = chunks.map((chunk) => new Document({
+    
+    const documents = chunks.map((chunk: string) => new Document({
+      id: crypto.randomUUID(),
       pageContent: chunk,
       metadata: {
         source,
         ingested_at: new Date(),
+        retrieval_score_modifier: 1.0,
       },
     }));
 
