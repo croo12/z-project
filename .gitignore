@@ -24,3 +24,6 @@ src-tauri/gen/android/.gradle/
 .env.*
 !.env.example
 !src-tauri/.env.example
+
+# gemini
+.gemini
