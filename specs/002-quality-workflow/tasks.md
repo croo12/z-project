@@ -63,7 +63,7 @@
 **Purpose**: documentation and final verification.
 
 - [x] T011 [P] Add documentation about Git Hooks to `README.md` or `CONTRIBUTING.md`.
-- [ ] T012 Verify entire workflow: Change file -> Commit (Lint) -> Push (Test) -> CI (Lint+Test).
+- [x] T012 Verify entire workflow: Change file -> Commit (Lint) -> Push (Test) -> CI (Lint+Test).
 
 ---
 
