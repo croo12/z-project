@@ -25,6 +25,7 @@ TypeScript (Node.js v20+), Rust (latest stable): Follow standard conventions
 ## Recent Changes
 
 - 001-ai-brain-server: Added TypeScript (Node.js v20+), Rust (latest stable) + LangChain.js, Express.js
+- 003-korean-docs: Standardized all documentation and templates to Korean. Enforced Korean-first policy.
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

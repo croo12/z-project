@@ -1,35 +1,34 @@
-# AI Agents Guide for z-project
+# z-project를 위한 AI 에이전트 가이드
 
-## Project Vision
-**"A curated platform for the continuous growth and self-improvement of a frontend developer."**
+## 프로젝트 비전
+**"프론트엔드 개발자의 지속적인 성장과 자기 계발을 위한 큐레이션 플랫폼"**
 
-This project aims to build an application helps frontend developers stay updated with technology, analyze their work patterns, and manage tasks efficiently.
+이 프로젝트는 프론트엔드 개발자가 최신 기술 트렌드를 파악하고, 자신의 작업 패턴을 분석하며, 업무를 효율적으로 관리할 수 있도록 돕는 애플리케이션 구축을 목표로 합니다.
 
-## Navigation
-Depending on your task scope, refer to the specific guides below:
+## 내비게이션
+작업 범위에 따라 아래의 구체적인 가이드를 참조하세요:
 
-- **Frontend (React/Vite)**: [apps/web/AGENTS.md](apps/web/AGENTS.md)
-- **Backend (Rust/Tauri)**: [apps/mobile/src-tauri/AGENTS.md](apps/mobile/src-tauri/AGENTS.md)
+- **프론트엔드 (React/Vite)**: [apps/web/AGENTS.md](apps/web/AGENTS.md)
+- **백엔드 (Rust/Tauri)**: [apps/mobile/src-tauri/AGENTS.md](apps/mobile/src-tauri/AGENTS.md)
 
-## Project Constitution
+## 프로젝트 헌법 (Constitution)
 
-### 1. Growth-Centric Value
-- **Objective**: All features must strictly contribute to the continuous growth and efficiency of frontend developers.
-- **Outcome**: The platform acts as a curated partner for self-improvement.
+### 1. 성장 중심 가치 (Growth-Centric Value)
+- **목표**: 모든 기능은 프론트엔드 개발자의 지속적인 성장과 효율성에 기여해야 합니다.
+- **결과**: 플랫폼은 자기 계발을 위한 엄선된 파트너로서 기능합니다.
 
-### 2. Premium Quality Standards
-- **Aesthetics**: Deliver a state-of-the-art "Wow" experience using modern design trends (Glassmorphism, rich animations).
-- **Engineering**: Ensure robust, crash-free backend logic and highly responsive frontend interactions.
+### 2. 프리미엄 품질 표준 (Premium Quality Standards)
+- **미학**: 최신 디자인 트렌드(글래스모피즘, 풍부한 애니메이션)를 사용하여 "Wow" 경험을 제공하는 최첨단 디자인을 구현합니다.
+- **엔지니어링**: 견고하고 충돌 없는 백엔드 로직과 반응성이 뛰어난 프론트엔드 상호작용을 보장합니다.
 
-### 3. Living Documentation System
-- **Principle**: Documentation and code are inseparable. Updates must be atomic and synchronous.
-- **Practice**: actively maintain `AGENTS.md`, spec files, and READMEs as the project evolves.
+### 3. 살아있는 문서 시스템 (Living Documentation System)
+- **원칙**: 문서와 코드는 불가분입니다. 업데이트는 원자적(atomic)이고 동기적으로 이루어져야 합니다.
+- **실천**: 프로젝트가 진화함에 따라 `AGENTS.md`, 명세서(spec) 파일, README를 적극적으로 유지 관리합니다.
 
-### 4. Disciplined Autonomous Workflow
-- **Tools**: Strictly enforce the use of **Spec-Kit** for feature lifecycle management and **Sequential Thinking** for complex problem solving.
-- **Context**: Leverage **MCP tools** (Context7) to bridge knowledge gaps before implementation.
+### 4. 규율 있는 자율 워크플로우 (Disciplined Autonomous Workflow)
+- **도구**: 기능 수명 주기 관리를 위해 **Spec-Kit**, 복잡한 문제 해결을 위해 **Sequential Thinking**의 사용을 엄격히 준수합니다.
+- **컨텍스트**: 구현 전 지식 격차를 해소하기 위해 **MCP 도구** (Context7)를 활용합니다.
 
-### 5. Clear Communication Protocol
-- **Language**: Use **Korean** for Implementation Plans and PR/User communication to ensure precise alignment.
-- **Clarity**: Prioritize clarity in code comments and technical documentation.
-
+### 5. 한국어 우선 문서화 (Korean-First Documentation)
+- **언어**: **모든 문서 및 커뮤니케이션은 한국어를 사용합니다.** (구현 계획, PR, 사용자 대화 등 모든 산출물 포함). 명확한 의미 전달을 위해 기술 용어는 영어를 병기할 수 있습니다.
+- **명확성**: 코드 주석과 기술 문서의 명확성을 최우선으로 합니다.

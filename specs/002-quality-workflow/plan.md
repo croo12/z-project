@@ -1,122 +1,122 @@
-# Technical Implementation Plan: Automated Code Quality Workflows
+# 기술 구현 계획: 자동화된 코드 품질 워크플로우
 
-**Feature**: Automated Code Quality Workflows  
-**Status**: Draft  
-**Related Spec**: [spec.md](./spec.md)
+**기능**: 자동화된 코드 품질 워크플로우  
+**상태**: 초안  
+**관련 명세서**: [spec.md](./spec.md)
 
-## 1. Architecture Overview
+## 1. 아키텍처 개요
 
-This feature integrates a multi-layered quality control system using Git hooks and CI pipelines. It adheres to the "Shift Left" philosophy, detecting errors as early as possible in the development lifecycle.
+이 기능은 Git 훅과 CI 파이프라인을 사용하는 다계층 품질 제어 시스템을 통합합니다. 이는 개발 수명 주기에서 가능한 한 일찍 오류를 감지하는 "Shift Left" 철학을 따릅니다.
 
-### High-Level Design
+### 고수준 설계
 
 ```mermaid
 graph TD
-    A[Developer] -->|git commit| B(Pre-commit Hook)
-    B -->|lint-staged| C{Linting & Formatting}
-    C -->|Pass| D[Commit Created]
-    C -->|Fail| E[Block Commit]
+    A[개발자] -->|git commit| B(프리커밋 훅)
+    B -->|lint-staged| C{린팅 & 포맷팅}
+    C -->|통과| D[커밋 생성됨]
+    C -->|실패| E[커밋 차단]
     
-    D -->|git push| F(Pre-push Hook)
-    F -->|vitest| G{Unit Tests}
-    G -->|Pass| H[Push to Remote]
-    G -->|Fail| I[Block Push]
+    D -->|git push| F(프리푸시 훅)
+    F -->|vitest| G{단위 테스트}
+    G -->|통과| H[리모트로 푸시]
+    G -->|실패| I[푸시 차단]
     
-    H -->|PR Created/Updated| J(CI Pipeline)
-    J -->|Run| K{Lint & Test All}
-    K -->|Pass| L[Merge Allowed]
-    K -->|Fail| M[Block Merge]
+    H -->|PR 생성/업데이트| J(CI 파이프라인)
+    J -->|실행| K{전체 린트 & 테스트}
+    K -->|통과| L[병합 허용]
+    K -->|실패| M[병합 차단]
 ```
 
-### Component Strategy
+### 컴포넌트 전략
 
-1.  **Local Environment (Hooks)**:
-    -   **Husky**: Orchestrates git hooks.
-    -   **lint-staged**: Optimizes pre-commit checks by running only on changed files.
-    -   **ESLint/Prettier**: Enforces code style and catches syntax errors.
-    -   **Vitest**: Runs fast unit tests before pushing.
+1.  **로컬 환경 (훅)**:
+    -   **Husky**: git 훅을 조율합니다.
+    -   **lint-staged**: 변경된 파일에서만 실행하여 프리커밋 검사를 최적화합니다.
+    -   **ESLint/Prettier**: 코드 스타일을 강제하고 문법 오류를 잡습니다.
+    -   **Vitest**: 푸시하기 전에 빠른 단위 테스트를 실행합니다.
 
-2.  **CI Environment (GitHub Actions)**:
-    -   **CI Workflow**: Runs comprehensive checks on every PR and push to main. It serves as the authoritative gatekeeper.
+2.  **CI 환경 (GitHub Actions)**:
+    -   **CI Workflow**: 모든 PR 및 main으로의 푸시에 대해 포괄적인 검사를 실행합니다. 권위 있는 문지기 역할을 합니다.
 
-## 2. Technology Stack
+## 2. 기술 스택
 
 -   **Git Hooks Manager**: `husky` (v9+)
 -   **Staged File Linter**: `lint-staged`
--   **Linter**: `eslint` (existing)
--   **Formatter**: `prettier` (existing)
--   **Test Runner**: `vitest` (existing)
+-   **Linter**: `eslint` (기존)
+-   **Formatter**: `prettier` (기존)
+-   **Test Runner**: `vitest` (기존)
 -   **CI Provider**: GitHub Actions
 
-## 3. Implementation Steps
+## 3. 구현 단계
 
-### Phase 1: Local Git Hooks Setup
+### 1단계: 로컬 Git 훅 설정
 
-**Objective**: Configure Husky and lint-staged to intercept commits and pushes.
+**목표**: 커밋과 푸시를 가로채도록 Husky 및 lint-staged 구성.
 
-1.  **Install & Configure Husky**:
-    -   Initialize husky in the root directory.
-    -   Add `prepare` script to `package.json`.
+1.  **Husky 설치 & 구성**:
+    -   루트 디렉토리에 husky 초기화.
+    -   `package.json`에 `prepare` 스크립트 추가.
 
-2.  **Configure Pre-commit Hook**:
-    -   Install `lint-staged`.
-    -   Create `.lintstagedrc` (or configure in package.json) to handle both `apps/web` and `apps/server`.
-    -   Rule: `*/*.{ts,tsx,js,jsx}` -> `eslint --fix`, `prettier --write`.
-    -   Create `.husky/pre-commit` hook to run `lint-staged`.
+2.  **프리커밋 훅 구성**:
+    -   `lint-staged` 설치.
+    -   `apps/web`과 `apps/server`를 모두 처리하도록 `.lintstagedrc` 생성 (또는 package.json에서 구성).
+    -   규칙: `*/*.{ts,tsx,js,jsx}` -> `eslint --fix`, `prettier --write`.
+    -   `lint-staged`를 실행하는 `.husky/pre-commit` 훅 생성.
 
-3.  **Configure Pre-push Hook**:
-    -   Create `.husky/pre-push` hook.
-    -   Command: Run `pnpm test` (which triggers `vitest run` in workspaces).
-    -   Optimization: Consider running only relevant workspace tests if possible, but comprehensive run is safer for `pre-push`.
+3.  **프리푸시 훅 구성**:
+    -   `.husky/pre-push` 훅 생성.
+    -   명령: `pnpm test` 실행 (작업 공간에서 `vitest run` 트리거).
+    -   최적화: 가능하면 관련 작업 공간 테스트만 실행하는 것을 고려하되, `pre-push`의 경우 포괄적인 실행이 더 안전함.
 
-### Phase 2: CI Pipeline Refinement
+### 2단계: CI 파이프라인 개선
 
-**Objective**: Ensure the `ci.yml` strictly enforces the same standards as local hooks.
+**목표**: `ci.yml`이 로컬 훅과 동일한 표준을 엄격하게 시행하도록 보장.
 
-1.  **Verify CI Workflow**:
-    -   Ensure `ci.yml` runs `lint` and `test` for all workspaces and packages.
-    -   (Already verified in `001`, but double-check consistency).
+1.  **CI 워크플로우 검증**:
+    -   `ci.yml`이 모든 작업 공간 및 패키지에 대해 `lint` 및 `test`를 실행하는지 확인.
+    -   (`001`에서 이미 확인되었으나, 일관성 다시 확인).
 
-### Phase 3: Monorepo Integration
+### 3단계: 모노레포 통합
 
-**Objective**: Ensure tools work correctly across `apps/server`, `apps/web`, and shared packages.
+**목표**: 도구가 `apps/server`, `apps/web` 및 공유 패키지 전반에서 올바르게 작동하도록 보장.
 
-1.  **Lint-staged Configuration**:
-    -   Must properly map file paths to the correct sub-project config.
-    -   Since it runs from root, standard config content usually handles this well.
+1.  **Lint-staged 구성**:
+    -   파일 경로를 올바른 하위 프로젝트 구성에 매핑해야 함.
+    -   루트에서 실행되므로 표준 구성 콘텐츠가 이를 잘 처리함.
 
-2.  **Testing Strategy**:
-    -   `pnpm test` from root usually runs tests in all workspaces. This is acceptable for pre-push unless it becomes too slow (>30s).
+2.  **테스트 전략**:
+    -   루트에서의 `pnpm test`는 일반적으로 모든 작업 공간에서 테스트를 실행함. 너무 느리지 않다면(>30초) 프리푸시로 허용 가능함.
 
-## 4. Work Logic & Data Flow
+## 4. 작업 로직 및 데이터 흐름
 
-**Pre-commit Logic**:
-1.  Developer runs `git commit`.
-2.  Husky triggers `.husky/pre-commit`.
-3.  Script invokes `npx lint-staged`.
-4.  `lint-staged` filters staged files.
-5.  If files match pattern:
-    -   Run `eslint --fix`.
-    -   Run `prettier --write`.
-    -   `git add` changes (if modification happened).
-6.  If exit code 0, commit proceeds. Else, abort.
+**프리커밋 로직**:
+1.  개발자가 `git commit` 실행.
+2.  Husky가 `.husky/pre-commit` 트리거.
+3.  스크립트가 `npx lint-staged` 호출.
+4.  `lint-staged`가 스테이징된 파일 필터링.
+5.  파일이 패턴과 일치하면:
+    -   `eslint --fix` 실행.
+    -   `prettier --write` 실행.
+    -   변경 사항 `git add` (수정이 발생한 경우).
+6.  종료 코드 0이면 커밋 진행. 아니면 중단.
 
-**Pre-push Logic**:
-1.  Developer runs `git push`.
-2.  Husky triggers `.husky/pre-push`.
-3.  Script runs `pnpm test`.
-4.  If exit code 0, push proceeds. Else, abort.
+**프리푸시 로직**:
+1.  개발자가 `git push` 실행.
+2.  Husky가 `.husky/pre-push` 트리거.
+3.  스크립트가 `pnpm test` 실행.
+4.  종료 코드 0이면 푸시 진행. 아니면 중단.
 
-## 5. Risk Assessment
+## 5. 위험 평가
 
-| Risk | Impact | Mitigation |
-|------|--------|------------|
-| Hooks not executable on some OS | Developers cannot commit | Ensure husky sets execute permissions; verify on Windows/Linux/Mac. |
-| Pre-push check too slow | Developer friction | Allow bypass (`--no-verify`) for emergency; optimize test suite performance. |
-| Monorepo path issues | Linting incorrect file sets | Use relative paths correctly in `lint-staged` config. |
+| 위험 | 영향 | 완화 |
+|------|------|------|
+| 일부 OS에서 훅 실행 불가 | 개발자가 커밋할 수 없음 | husky가 실행 권한을 설정하는지 확인; Windows/Linux/Mac에서 검증. |
+| 프리푸시 검사가 너무 느림 | 개발자 마찰 | 긴급 상황을 위해 우회(`--no-verify`) 허용; 테스트 스위트 성능 최적화. |
+| 모노레포 경로 문제 | 잘못된 파일 셋 린팅 | `lint-staged` 구성에서 상대 경로 올바르게 사용. |
 
-## 6. Verification Plan
+## 6. 검증 계획
 
-1.  **Local Commit Test**: Change a file to violate lint rules, try to commit -> Must fail.
-2.  **Local Push Test**: Break a test, try to push -> Must fail.
-3.  **CI Parity Test**: Ensure a PR that passes local checks also passes CI (same rules).
+1.  **로컬 커밋 테스트**: 린트 규칙을 위반하도록 파일 변경, 커밋 시도 -> 실패해야 함.
+2.  **로컬 푸시 테스트**: 테스트를 고장내고, 푸시 시도 -> 실패해야 함.
+3.  **CI 동등성 테스트**: 로컬 검사를 통과한 PR이 CI도 통과하는지 확인 (동일 규칙).

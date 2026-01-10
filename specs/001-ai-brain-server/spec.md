@@ -1,83 +1,83 @@
-# Feature Specification: AI Brain Server
+# 기능 명세서: AI Brain Server
 
-**Feature Branch**: `001-ai-brain-server`
-**Created**: 2026-01-10
-**Status**: Draft
-**Input**: User description: "apps/server는 이 앱의 핵심 부분으로 LangGraph / RAG를 이용해 실제 AI의 두뇌 역할을 해야합니다. 1. 내가 사용하는 AI 툴과 연결해 컨텍스트를 추가하거나 응답에 피드백을 주는 기능을 수행할 수 있어야합니다. 2. 실시간으로 새로운 정보를 입력받고 이 정보를 저장해 점점 더 나은 AI로 발전해 나가야 합니다. 이와 같은 기능들이 최종적으로 구현되어야 합니다."
+**기능 브랜치**: `001-ai-brain-server`
+**생성일**: 2026-01-10
+**상태**: 초안
+**입력**: 사용자 설명: "apps/server는 이 앱의 핵심 부분으로 LangGraph / RAG를 이용해 실제 AI의 두뇌 역할을 해야합니다. 1. 내가 사용하는 AI 툴과 연결해 컨텍스트를 추가하거나 응답에 피드백을 주는 기능을 수행할 수 있어야합니다. 2. 실시간으로 새로운 정보를 입력받고 이 정보를 저장해 점점 더 나은 AI로 발전해 나가야 합니다. 이와 같은 기능들이 최종적으로 구현되어야 합니다."
 
-## User Scenarios & Testing *(mandatory)*
+## 사용자 시나리오 및 테스트 *(필수)*
 
-### User Story 1 - Contextual Interaction (Priority: P1)
+### 사용자 스토리 1 - 맥락 기반 인터랙션 (우선순위: P1)
 
-As a user interacting with an external AI tool (e.g., a code editor's AI assistant), I want the AI Brain Server to receive the context of my interaction (e.g., current file, selected code) and the AI's response, so that I can provide feedback on the response's quality and relevance.
+외부 AI 도구(예: 코드 에디터의 AI 어시스턴트)와 상호작용하는 사용자로서, 나는 AI Brain Server가 내 상호작용의 맥락(예: 현재 파일, 선택된 코드)과 AI의 응답을 수신하여, 그 응답의 품질과 관련성에 대한 피드백을 제공할 수 있기를 원한다.
 
-**Why this priority**: This is the primary mechanism for the system to learn from user-AI interactions.
+**이 우선순위인 이유**: 이것은 시스템이 사용자-AI 상호작용으로부터 학습하기 위한 주요 메커니즘이다.
 
-**Independent Test**: Can be tested by sending a sample interaction payload to an endpoint and verifying that it is correctly stored and that a feedback endpoint is available for that interaction.
+**독립적 테스트**: 예제 인터랙션 페이로드를 엔드포인트로 전송하고, 그것이 올바르게 저장되었는지 확인한 후, 해당 인터랙션에 대한 피드백 엔드포인트가 사용 가능한지 검증 테스트 가능하다.
 
-**Acceptance Scenarios**:
+**인수 시나리오**:
 
-1.  **Given** a user is interacting with an external AI tool, **When** the tool sends interaction context (query, code, AI response) to the server, **Then** the server MUST acknowledge receipt and store the interaction with a unique ID.
-2.  **Given** a stored interaction, **When** the user submits feedback (positive, negative, or corrective text) for that interaction ID, **Then** the server MUST associate the feedback with the interaction and store it.
-
----
-
-### User Story 2 - Real-time Knowledge Ingestion (Priority: P1)
-
-As a user, I want to provide new information, documents, or feedback to the AI Brain Server in real-time, so that the system can learn and improve its future responses.
-
-**Why this priority**: This is the core feature for making the AI "smarter" and more personalized over time.
-
-**Independent Test**: Can be tested by sending a new piece of text or a document to an ingestion endpoint and then querying for a related topic to see if the new information is retrieved.
-
-**Acceptance Scenarios**:
-
-1.  **Given** a user has a new piece of information (text or document), **When** they submit it to the knowledge ingestion endpoint, **Then** the system MUST process and store it in the vector knowledge base.
-2.  **Given** new information has been successfully ingested, **When** a user makes a query related to that information, **Then** the query results MUST include the newly added information.
+1. **Given** 사용자가 외부 AI 도구와 상호작용 중일 때, **When** 도구가 인터랙션 맥락(쿼리, 코드, AI 응답)을 서버로 전송하면, **Then** 서버는 수신을 확인하고 고유 ID와 함께 인터랙션을 저장해야 한다.
+2. **Given** 저장된 인터랙션이 있을 때, **When** 사용자가 해당 인터랙션 ID에 대해 피드백(긍정, 부정, 또는 수정 텍스트)을 제출하면, **Then** 서버는 피드백을 인터랙션과 연관시키고 저장해야 한다.
 
 ---
 
-### User Story 3 - Enhanced AI Responses (Priority: P2)
+### 사용자 스토리 2 - 실시간 지식 수집 (우선순위: P1)
 
-As a user interacting with an external AI tool, I want the AI Brain Server to use its accumulated knowledge (from RAG) to augment or enhance the responses I receive, making them more accurate, up-to-date, and contextually relevant.
+사용자로서, 나는 새로운 정보, 문서 또는 피드백을 AI Brain Server에 실시간으로 제공하여, 시스템이 학습하고 향후 응답을 개선할 수 있기를 원한다.
 
-**Why this priority**: This realizes the value of the collected knowledge by delivering better results to the user.
+**이 우선순위인 이유**: 이것은 시간이 지남에 따라 AI를 더 "똑똑하게" 만들고 개인화하기 위한 핵심 기능이다.
 
-**Independent Test**: Can be tested by sending a query to the server; the response should contain information that exists only in the server's custom knowledge base, not in the base model's knowledge.
+**독립적 테스트**: 새로운 텍스트 조각이나 문서를 수집 엔드포인트로 전송한 다음, 관련 주제에 대해 쿼리하여 새 정보가 검색되는지 확인 테스트 가능하다.
 
-**Acceptance Scenarios**:
+**인수 시나리오**:
 
-1.  **Given** the knowledge base contains specific information not known by the general LLM, **When** a user sends a query related to that specific information, **Then** the server's response MUST be augmented with the specific information from the knowledge base.
+1. **Given** 사용자에게 새로운 정보(텍스트 또는 문서)가 있을 때, **When** 그들이 지식 수집 엔드포인트에 제출하면, **Then** 시스템은 이를 처리하고 벡터 지식 베이스에 저장해야 한다.
+2. **Given** 새로운 정보가 성공적으로 수집되었을 때, **When** 사용자가 해당 정보와 관련된 쿼리를 수행하면, **Then** 쿼리 결과에는 새로 추가된 정보가 포함되어야 한다.
 
-### Edge Cases
+---
 
--   What happens when feedback is submitted for a non-existent interaction ID? (System should return a clear error).
--   How does the system handle ingestion of duplicate or conflicting information?
--   What is the behavior when the external AI tool's API is unavailable or returns an error?
+### 사용자 스토리 3 - 향상된 AI 응답 (우선순위: P2)
 
-## Requirements *(mandatory)*
+외부 AI 도구와 상호작용하는 사용자로서, 나는 AI Brain Server가 축적된 지식(RAG)을 사용하여 내가 받는 응답을 보강하거나 향상시켜, 더 정확하고 최신이며 맥락에 맞는 응답을 제공하기를 원한다.
 
-### Functional Requirements
+**이 우선순위인 이유**: 이것은 수집된 지식의 가치를 사용자에게 더 나은 결과로 전달함으로써 실현한다.
 
--   **FR-001**: The system MUST expose a secure API endpoint to receive interaction data from external AI tools. This data includes user context (e.g., editor content) and AI responses.
--   **FR-002**: The system MUST expose a secure API endpoint to receive user feedback on AI responses. Feedback can be positive, negative, or include corrective information.
--   **FR-003**: The system MUST expose a secure API endpoint for ingesting new knowledge in real-time. This can include text snippets, documents, or structured data.
--   **FR-004**: The system MUST store all ingested knowledge, interaction context, and feedback in a persistent vector database suitable for RAG.
--   **FR-005**: The system MUST use a graph-based workflow (like LangGraph) to process incoming requests, retrieve relevant information from the knowledge base (RAG), and generate augmented responses.
--   **FR-006**: The system MUST provide a mechanism for the AI to evolve based on feedback. Initially, this will be implemented by adjusting the retrieval scores of knowledge chunks. Positive feedback will increase a chunk's score, while negative feedback will decrease it. All feedback, especially corrective text, MUST be stored in a structured format for future use in model fine-tuning.
--   **FR-007**: The system MUST manage and version the knowledge base to track changes and potentially allow for rollbacks.
+**독립적 테스트**: 서버에 쿼리를 전송하여 테스트 가능; 응답에는 기본 모델의 지식이 아닌 서버의 커스텀 지식 베이스에만 존재하는 정보가 포함되어야 한다.
 
-### Key Entities *(include if feature involves data)*
+**인수 시나리오**:
 
--   **Interaction**: Represents a single exchange with an AI tool. Contains the user's context, the original query, and the AI's response.
--   **Feedback**: Represents the user's evaluation of an `Interaction`. Can be a rating (e.g., thumbs up/down), a correction, or additional context.
--   **KnowledgeChunk**: A piece of information stored in the vector database. It is a vectorized representation of text or data provided by the user.
+1. **Given** 지식 베이스에 일반 LLM이 알지 못하는 특정 정보가 포함되어 있을 때, **When** 사용자가 해당 특정 정보와 관련된 쿼리를 보내면, **Then** 서버의 응답은 지식 베이스의 특정 정보로 보강되어야 한다.
 
-## Success Criteria *(mandatory)*
+### 엣지 케이스
 
-### Measurable Outcomes
+- 존재하지 않는 인터랙션 ID에 대해 피드백이 제출되면 어떻게 되는가? (시스템은 명확한 오류를 반환해야 함).
+- 시스템은 중복되거나 충돌하는 정보의 수집을 어떻게 처리하는가?
+- 외부 AI 도구의 API를 사용할 수 없거나 오류를 반환할 때 동작은 무엇인가?
 
--   **SC-001**: After providing a piece of new, unique information, a user's subsequent query on that topic MUST retrieve the new information in its response at least 95% of the time.
--   **SC-002**: The end-to-end latency for receiving a request, processing it through the RAG pipeline, and returning an augmented response MUST be under 2 seconds on average.
--   **SC-003**: Over a 30-day period, the ratio of positive to negative feedback on AI responses MUST show a statistically significant upward trend.
--   **SC-004**: The system must be able to ingest and index new knowledge at a rate of at least 100 documents per minute.
+## 요구사항 *(필수)*
+
+### 기능적 요구사항
+
+- **FR-001**: 시스템은 외부 AI 도구로부터 인터랙션 데이터를 수신하기 위한 보안 API 엔드포인트를 노출해야 한다. 이 데이터에는 사용자 맥락(예: 에디터 콘텐츠)과 AI 응답이 포함된다.
+- **FR-002**: 시스템은 AI 응답에 대한 사용자 피드백을 수신하기 위한 보안 API 엔드포인트를 노출해야 한다. 피드백은 긍정, 부정 또는 수정 정보를 포함할 수 있다.
+- **FR-003**: 시스템은 실시간으로 새로운 지식을 수집하기 위한 보안 API 엔드포인트를 노출해야 한다. 여기에는 텍스트 스니펫, 문서 또는 구조화된 데이터가 포함될 수 있다.
+- **FR-004**: 시스템은 수집된 모든 지식, 인터랙션 맥락, 피드백을 RAG에 적합한 영구 벡터 데이터베이스에 저장해야 한다.
+- **FR-005**: 시스템은 들어오는 요청을 처리하고, 지식 베이스에서 관련 정보를 검색(RAG)하며, 보강된 응답을 생성하기 위해 그래프 기반 워크플로우(LangGraph 등)를 사용해야 한다.
+- **FR-006**: 시스템은 피드백을 기반으로 AI가 진화할 수 있는 메커니즘을 제공해야 한다. 초기에는 지식 청크의 검색 점수를 조정하여 구현된다. 긍정적 피드백은 청크의 점수를 높이고, 부정적 피드백은 점수를 낮춘다. 모든 피드백, 특히 수정 텍스트는 향후 모델 파인 튜닝을 위해 구조화된 형식으로 저장되어야 한다.
+- **FR-007**: 시스템은 지식 베이스를 관리하고 버전 관리하여 변경 사항을 추적하고 잠재적으로 롤백을 허용해야 한다.
+
+### 주요 엔티티 *(기능이 데이터를 포함하는 경우 포함)*
+
+- **Interaction (상호작용)**: AI 도구와의 단일 교환을 나타냄. 사용자의 맥락, 원래 쿼리, AI의 응답을 포함.
+- **Feedback (피드백)**: `Interaction`에 대한 사용자의 평가를 나타냄. 등급(예: 좋아요/싫어요), 수정 사항 또는 추가 맥락일 수 있음.
+- **KnowledgeChunk (지식 청크)**: 벡터 데이터베이스에 저장된 정보 조각. 사용자가 제공한 텍스트 또는 데이터의 벡터화된 표현.
+
+## 성공 기준 *(필수)*
+
+### 측정 가능한 결과
+
+- **SC-001**: 새롭고 고유한 정보를 제공한 후, 해당 주제에 대한 사용자의 후속 쿼리는 95% 이상의 확률로 응답에 새 정보를 검색해야 한다.
+- **SC-002**: 요청을 수신하고, RAG 파이프라인을 통해 처리하고, 보강된 응답을 반환하는 엔드 투 엔드 지연 시간은 평균 2초 미만이어야 한다.
+- **SC-003**: 30일 기간 동안, AI 응답에 대한 긍정 대 부정 피드백의 비율은 통계적으로 유의미한 상승 추세를 보여야 한다.
+- **SC-004**: 시스템은 분당 최소 100개의 문서를 수집하고 색인화할 수 있어야 한다.
