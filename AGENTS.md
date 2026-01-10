@@ -32,3 +32,9 @@ Depending on your task scope, refer to the specific guides below:
 ### 4. Technical Constraints
 - Follow the specific tech stack rules in the sub-guides (Frontend/Backend).
 - **Aesthetics**: Use modern, premium designs (Glassmorphism, etc.) for UI tasks.
+
+### 5. MCP Usage Guidelines
+- **Context7**: Use this when you need up-to-date documentation, library usage examples, or when your internal knowledge might be outdated.
+- **Sequential Thinking**: Use this for complex problem solving, architectural decisions, breaking down large tasks, or when you feel "stuck" or need to verify your logic.
+- **Spec-Kit**: MANTATORY for all new features, significant refactoring, or multi-file changes. Use it to generate specs, plans, and task lists before writing code.
+

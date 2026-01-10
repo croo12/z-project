@@ -1,0 +1,15 @@
+# Specification
+
+## Requirements
+
+**Objective**: Update `AGENTS.md` to include specific guidelines for using the available MCP servers.
+
+**Requirements**:
+1.  **Target File**: Modify `c:\Users\jimmy\project\z-project\AGENTS.md`.
+2.  **New Section**: Add a section "### 5. MCP Usage Guidelines" under "Global Rules for Agents".
+3.  **Content Rules**:
+    *   **Context7**: Use this when you need up-to-date documentation, library usage examples, or when your internal knowledge might be outdated.
+    *   **Sequential Thinking**: Use this for complex problem solving, architectural decisions, breaking down large tasks, or when you feel "stuck" or need to verify your logic.
+    *   **Spec-Kit**: MANTATORY for all new features, significant refactoring, or multi-file changes. Use it to generate specs, plans, and task lists before writing code.
+4.  **Language**: Write the rules in **Korean** as per the project's "Language Protocol".
+
