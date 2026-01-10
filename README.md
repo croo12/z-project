@@ -37,3 +37,22 @@ First, ensure Android Studio is installed and `ANDROID_HOME` environment variabl
    ```bash
    npm run tauri android dev
    ```
+   ```
+   
+## Development Workflow
+
+### Code Quality
+
+This project uses **Husky** to enforce quality checks:
+
+- **Pre-commit**: Automatically runs `ESLint` and `Prettier` on staged files.
+- **Pre-push**: Runs all unit tests via `pnpm test`.
+
+To manually run tests:
+```bash
+pnpm test
+```
+To run tests in a specific package:
+```bash
+pnpm --filter <package-name> test
+```

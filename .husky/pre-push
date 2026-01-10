@@ -1,6 +1,1 @@
-export PATH="$PATH:/c/Users/jimmy/.cargo/bin"
-# Run Rust Tests
-cd apps/mobile/src-tauri && cargo test && cd ../../..
-
-# Run Frontend Build (Basic Test)
-pnpm --filter @z-project/web build
+pnpm test
