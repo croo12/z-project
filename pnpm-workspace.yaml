@@ -1,3 +1,4 @@
 packages:
   - "apps/*"
+  - "apps/server/rust_components"
   - "packages/*"

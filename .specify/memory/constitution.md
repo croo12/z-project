@@ -1,50 +1,38 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report:
+- Version change: 1.1.0 → 2.0.0 (Major Revision)
+- Rationale: The constitution has been completely rewritten to reflect the core vision of building a personal, configurable AI development tool.
+- Modified principles: All principles have been replaced.
+  - Principle 1: Principled AI-Assisted Development
+  - Principle 2: Composable Project Specifications
+  - Principle 3: Automated & Verifiable Workflows
+  - Principle 4: Structured & Process-Oriented Task Execution
+- Added sections: None
+- Removed sections: All old principles.
+- Templates requiring updates:
+  - ⚠ .specify/templates/plan-template.md
+  - ⚠ .specify/templates/spec-template.md
+  - ⚠ .specify/templates/tasks-template.md
+- Follow-up TODOs: None
+-->
+# z-project Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### 1. Principled AI-Assisted Development
+To counteract the limitations of generic LLMs, the AI must adhere to a predefined, version-controlled set of coding methodologies, style guides, and architectural rules. These rules form this constitution, which governs all code generation and modification, eliminating the need for repetitive, per-request instructions.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### 2. Composable Project Specifications
+Project context is not monolithic. The AI's understanding must be assembled from modular, reusable components (e.g., tech stack, domain, design system, project-specific libraries). This compositional approach allows the AI to dynamically adapt its behavior to any project's unique requirements.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### 3. Automated & Verifiable Workflows
+All development activities, from feature implementation to verification, must be encapsulated in automated, repeatable workflows. These workflows define the standard operating procedures for the AI, ensuring consistency, reliability, and enabling a fully autonomous development process.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
-
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
-
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
-
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
-
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
-
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### 4. Structured & Process-Oriented Task Execution
+Achieving production-level quality requires more than simple prompts. The AI must follow a structured, multi-step process for every task. This includes integrating Mission-Critical Prompts (MCPs) and other necessary tools to ensure a rigorous and well-documented development cycle.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+Amendments to this constitution require a documented proposal, review, and an approved migration plan. All pull requests and code reviews must verify compliance with these principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 2.0.0 | **Ratified**: 2026-01-10 | **Last Amended**: 2026-01-10

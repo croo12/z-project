@@ -1,0 +1,141 @@
+openapi: 3.0.0
+info:
+  title: AI Brain Server API
+  version: 1.0.0
+  description: |
+    API for the AI Brain Server, which allows for logging AI interactions,
+    submitting feedback, ingesting knowledge, and querying the RAG system.
+
+paths:
+  /query:
+    post:
+      summary: Get an Augmented Response
+      description: |
+        Submits a query to the server, which then uses its RAG pipeline
+        (LangGraph + FAISS) to generate an augmented, context-aware response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: The user's question or prompt.
+                context:
+                  type: object
+                  description: Optional contextual information (e.g., from the user's editor).
+              required:
+                - query
+      responses:
+        '200':
+          description: Successfully returned an augmented response.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    description: The augmented response from the AI.
+                  source_metadata:
+                    type: array
+                    items:
+                      type: object
+                      description: Metadata from the knowledge chunks used to generate the response.
+
+  /interactions:
+    post:
+      summary: Log an AI Interaction
+      description: Logs an interaction between a user and an external AI tool for later feedback.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InteractionInput'
+      responses:
+        '201':
+          description: Interaction successfully logged.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                    description: The unique ID assigned to the logged interaction.
+
+  /feedback:
+    post:
+      summary: Submit Feedback
+      description: Submits feedback for a previously logged interaction.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackInput'
+      responses:
+        '201':
+          description: Feedback successfully submitted.
+
+  /knowledge:
+    post:
+      summary: Ingest Knowledge
+      description: Submits a new piece of information to be added to the knowledge base.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  description: The text content to be ingested.
+                source:
+                  type: string
+                  description: An identifier for the source of the information.
+              required:
+                - content
+                - source
+      responses:
+        '202':
+          description: |
+            The knowledge has been accepted for ingestion. Ingestion is an
+            asynchronous process.
+
+components:
+  schemas:
+    InteractionInput:
+      type: object
+      properties:
+        user_context:
+          type: object
+          description: A flexible JSON object containing contextual information.
+        original_query:
+          type: string
+        ai_response:
+          type: string
+      required:
+        - original_query
+        - ai_response
+
+    FeedbackInput:
+      type: object
+      properties:
+        interaction_id:
+          type: string
+          format: uuid
+        rating:
+          type: string
+          enum: [positive, negative]
+        correction:
+          type: string
+          nullable: true
+      required:
+        - interaction_id
+        - rating

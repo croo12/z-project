@@ -11,24 +11,24 @@ Depending on your task scope, refer to the specific guides below:
 - **Frontend (React/Vite)**: [apps/web/AGENTS.md](apps/web/AGENTS.md)
 - **Backend (Rust/Tauri)**: [apps/mobile/src-tauri/AGENTS.md](apps/mobile/src-tauri/AGENTS.md)
 
-## Global Rules for Agents
+## Project Constitution
 
-### 1. Language Protocol
-- **Implementation Plans**: Write in **Korean** (한국어).
-- **PR Reviews / User Communication**: Write in **Korean** (한국어).
-- **Code Comments**: English is preferred for code, but use Korean if it aids clarity for the user.
+### 1. Growth-Centric Value
+- **Objective**: All features must strictly contribute to the continuous growth and efficiency of frontend developers.
+- **Outcome**: The platform acts as a curated partner for self-improvement.
 
-### 2. Documentation Maintenance
-> [!IMPORTANT]
-> **ALWAYS** create or update relevant documentation after completing a task.
-- If you add a feature, update `AGENTS.md` or create a spec file in `specs/`.
-- If you change a workflow, update `README.md` or `.github/workflows`.
-- Never leave the documentation outdated relative to the code.
+### 2. Premium Quality Standards
+- **Aesthetics**: Deliver a state-of-the-art "Wow" experience using modern design trends (Glassmorphism, rich animations).
+- **Engineering**: Ensure robust, crash-free backend logic and highly responsive frontend interactions.
 
-### 3. Workflow Discipline
-- Review `task.md` and `implementation_plan.md` before starting work.
-- Ensure `git status` is clean before starting a major task.
+### 3. Living Documentation System
+- **Principle**: Documentation and code are inseparable. Updates must be atomic and synchronous.
+- **Practice**: actively maintain `AGENTS.md`, spec files, and READMEs as the project evolves.
 
-### 4. Technical Constraints
-- Follow the specific tech stack rules in the sub-guides (Frontend/Backend).
-- **Aesthetics**: Use modern, premium designs (Glassmorphism, etc.) for UI tasks.
+### 4. Disciplined Autonomous Workflow
+- **Tools**: Strictly enforce the use of **Spec-Kit** for feature lifecycle management and **Sequential Thinking** for complex problem solving.
+- **Context**: Leverage **MCP tools** (Context7) to bridge knowledge gaps before implementation.
+
+### 5. Clear Communication Protocol
+- **Language**: Use **Korean** for Implementation Plans and PR/User communication to ensure precise alignment.
+- **Clarity**: Prioritize clarity in code comments and technical documentation.

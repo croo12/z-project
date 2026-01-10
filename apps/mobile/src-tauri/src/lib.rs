@@ -32,6 +32,7 @@ pub fn run() {
     dotenv::dotenv().ok();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_app::init())
         .setup(|app| {
             // Initialize DB
             let pool = db::init_db(app.handle()).expect("Failed to initialize database");
