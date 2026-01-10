@@ -61,8 +61,7 @@
 **Independent Test**: With known, unique information in the vector store, call `/query` with a related question and verify the unique information is present in the response.
 
 - [X] T016 [US3] Implement the core RAG logic within the LangGraph graph in `apps/server/src/core/graph.ts`, including retrieval from FAISS.
-- [ ] T017 [US3] In the `FeedbackService`, add the logic to adjust the `retrieval_score_modifier` in the metadata of `KnowledgeChunk`s based on user feedback. The RAG logic in `T016` should use this score. **[BLOCKED]**
-  - **Note**: This task is blocked. The chosen vector store (`langchain/faiss-node`) does not support updating document metadata, which is required to implement the score adjustment feedback loop. The vector store choice needs to be re-evaluated (e.g., switching to ChromaDB or Weaviate) to implement this feature. For now, feedback is stored but not acted upon.
+- [X] T017 [US3] Migrate `apps/server/src/lib/vector-store.ts` to use LanceDB instead of FAISS, and implement the `retrieval_score_modifier` update logic in `FeedbackService`.
 - [X] T018 [US3] Create the API endpoint for querying at `POST /query` in `apps/server/src/api/query.ts`, which invokes the LangGraph to get a response.
 
 ---

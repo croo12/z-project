@@ -19,7 +19,7 @@ This project will implement the "AI Brain Server," the core of a personal AI sys
 
 **Language/Version**: TypeScript (Node.js v20+), Rust (latest stable)
 **Primary Dependencies**: LangChain.js, Express.js
-**Storage**: Local/file-based (FAISS via LangChain.js) for initial development, with the ability to switch to a production-grade DB later.
+**Storage**: Local/file-based (LanceDB) - Chosen for local-first architecture and support for metadata updates.
 **Testing**: Vitest for TypeScript and the standard `cargo test` for Rust.
 **Target Platform**: Linux Server (deployed as a Docker container)
 **Project Type**: Web Application (Backend Server)

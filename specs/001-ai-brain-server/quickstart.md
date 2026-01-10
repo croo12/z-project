@@ -48,8 +48,8 @@ The server will start (by default on port `3000`) and will have access to the co
 
 ## Local Vector Store
 
-- **Database Location**: The FAISS vector store will be saved to a local file within the `apps/server` directory (e.g., `apps/server/db/faiss_index`). This file will be created automatically on the first run.
-- **Persistence**: The database is persisted on disk, so the server can be restarted without losing the ingested knowledge. The database file path is already in `.gitignore`.
+- **Database Location**: The LanceDB vector store will be saved to a local directory within the `apps/server` directory (e.g., `apps/server/db`). This directory will be created automatically on the first run.
+- **Persistence**: The database is persisted on disk, so the server can be restarted without losing the ingested knowledge. The database directory is already in `.gitignore`.
 
 ## Testing
 
