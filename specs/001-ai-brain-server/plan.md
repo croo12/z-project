@@ -1,84 +1,78 @@
-# Implementation Plan: AI Brain Server
+# 구현 계획: AI Brain Server
 
-**Branch**: `001-ai-brain-server` | **Date**: 2026-01-10 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `C:\Users\jimmy\project\z-project\specs\001-ai-brain-server\spec.md`
+**브랜치**: `001-ai-brain-server` | **날짜**: 2026-01-10 | **명세서**: [spec.md](spec.md)
+**입력**: `specs/001-ai-brain-server/spec.md`의 기능 명세
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**참고**: 이 템플릿은 `/speckit.plan` 명령에 의해 작성됩니다. 실행 워크플로우에 대해서는 `.specify/templates/commands/plan.md`를 참조하세요.
 
-## Summary
+## 요약
 
-This project will implement the "AI Brain Server," the core of a personal AI system, using TypeScript (with LangChain.js) and Rust. The server will provide capabilities for real-time knowledge ingestion and a feedback loop connected to external AI tools. It leverages Retrieval-Augmented Generation (RAG) and graph-based workflows (LangGraph) to provide contextually relevant and continuously improving AI responses.
+이 프로젝트는 개인 AI 시스템의 핵심인 "AI Brain Server"를 TypeScript(LangChain.js 포함)와 Rust를 사용하여 구현합니다. 이 서버는 실시간 지식 수집 기능과 외부 AI 도구에 연결된 피드백 루프 기능을 제공합니다. 검색 증강 생성(RAG)과 그래프 기반 워크플로우(LangGraph)를 활용하여 맥락에 맞고 지속적으로 개선되는 AI 응답을 제공합니다.
 
-## Technical Context
+## 기술적 맥락
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**언어/버전**: TypeScript (Node.js v20+), Rust (최신 안정 버전)
+**주요 의존성**: LangChain.js, Express.js
+**저장소**: 로컬/파일 기반 (LanceDB) - 로컬 우선 아키텍처 및 메타데이터 업데이트 지원을 위해 선택됨.
+**테스트**: TypeScript용 Vitest 및 Rust용 표준 `cargo test`.
+**대상 플랫폼**: Linux 서버 (Docker 컨테이너로 배포)
+**프로젝트 유형**: 웹 애플리케이션 (백엔드 서버)
+**성능 목표**: 명세서에 따름: 보강된 응답에 대해 지연 시간 <2s p95, 문서 수집 >100개/분.
+**제약 사항**: 견고한 피드백 루프와 지식 베이스 버전 관리를 지원해야 함.
+**규모/범위**: 초기에는 단일 사용자의 개인 지식 베이스를 위해 설계되었으나, 아키텍처는 확장 가능해야 함.
 
-**Language/Version**: TypeScript (Node.js v20+), Rust (latest stable)
-**Primary Dependencies**: LangChain.js, Express.js
-**Storage**: Local/file-based (LanceDB) - Chosen for local-first architecture and support for metadata updates.
-**Testing**: Vitest for TypeScript and the standard `cargo test` for Rust.
-**Target Platform**: Linux Server (deployed as a Docker container)
-**Project Type**: Web Application (Backend Server)
-**Performance Goals**: As per spec: <2s p95 latency for augmented responses, ingest >100 docs/min.
-**Constraints**: Must support a robust feedback loop and knowledge base versioning.
-**Scale/Scope**: Initially designed for a single user's personal knowledge base, but the architecture should be scalable.
+## 헌법(Constitution) 체크
 
-## Constitution Check
+*GATE: Phase 0 조사 전 통과 필수. Phase 1 설계 후 재확인.*
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+- **1. 규칙 기반 AI 개발**: 계획은 프로젝트 규칙에 의해 관리될 명확한 기술 스택과 접근 방식(LangChain, RAG)을 정의하여 이에 부합합니다.
+- **2. 구성 가능한 프로젝트 명세**: "두뇌"를 위한 별도 서버와 별도의 Rust 컴포넌트를 사용하는 것은 구성 가능하고 모듈화된 아키텍처를 예시합니다.
+- **3. 자동화 및 검증 가능한 워크플로우**: 이 계획은 이 기능에 대한 테스트, 배포 및 태스크 실행을 위한 자동화된 워크플로우를 생성하는 첫 번째 단계입니다.
+- **4. 구조화 및 프로세스 지향 태스크 실행**: 이 전체 프로세스는 헌법에 정의된 구조화되고 검증 가능한 워크플로우를 따릅니다.
 
-- **1. Principled AI-Assisted Development**: The plan aligns by defining a clear tech stack and approach (LangChain, RAG), which will be governed by the project's rules.
-- **2. Composable Project Specifications**: The use of a distinct server for the "brain" and a separate Rust component exemplifies a composable, modular architecture.
-- **3. Automated & Verifiable Workflows**: This plan is the first step toward creating automated workflows for testing, deployment, and task execution for this feature.
-- **4. Structured & Process-Oriented Task Execution**: This entire process follows the structured, verifiable workflow defined by the constitution.
+**결과**: 모든 게이트 통과.
 
-**Result**: All gates pass.
+## 프로젝트 구조
 
-## Project Structure
-
-### Documentation (this feature)
+### 문서 (본 기능)
 
 ```text
 specs/001-ai-brain-server/
-├── plan.md              # This file
-├── research.md          # Phase 0 output
-├── data-model.md        # Phase 1 output
-├── quickstart.md        # Phase 1 output
-├── contracts/           # Phase 1 output
-└── tasks.md             # Phase 2 output
+├── plan.md              # 본 파일
+├── research.md          # 0단계 출력
+├── data-model.md        # 1단계 출력
+├── quickstart.md        # 1단계 출력
+├── contracts/           # 1단계 출력
+└── tasks.md             # 2단계 출력
 ```
 
-### Source Code (repository root)
+### 소스 코드 (레포지토리 루트)
 
-This feature will be implemented within the `apps/server` directory of the existing monorepo. A new directory will be created for the Rust component.
+이 기능은 기존 모노레포의 `apps/server` 디렉토리 내에 구현됩니다. Rust 컴포넌트를 위한 새 디렉토리가 생성됩니다.
 
 ```text
 apps/
 └── server/
     ├── src/
-    │   ├── api/         # API endpoints (Express.js routes)
-    │   ├── core/        # Core RAG/LangGraph logic
-    │   ├── services/    # Business logic (feedback handling, ingestion)
-    │   ├── types/       # TypeScript types and interfaces
-    │   └── lib/         # Shared utilities, DB clients
+    │   ├── api/         # API 엔드포인트 (Express.js 라우트)
+    │   ├── core/        # 핵심 RAG/LangGraph 로직
+    │   ├── services/    # 비즈니스 로직 (피드백 처리, 수집)
+    │   ├── types/       # TypeScript 타입 및 인터페이스
+    │   └── lib/         # 공유 유틸리티, DB 클라이언트
     ├── tests/
     │   ├── integration/
     │   └── unit/
-    └── rust_components/ # Directory for the Rust component
+    └── rust_components/ # Rust 컴포넌트용 디렉토리
         ├── src/
         └── Cargo.toml
 ```
 
-**Structure Decision**: The proposed structure isolates the new backend service within the `apps/server` directory, following the monorepo convention. It creates a dedicated space for the Rust component, allowing for independent builds and testing.
+**구조 결정**: 제안된 구조는 모노레포 관례에 따라 `apps/server` 디렉토리 내에 새로운 백엔드 서비스를 격리합니다. Rust 컴포넌트를 위한 전용 공간을 만들어 독립적인 빌드와 테스트를 가능하게 합니다.
 
-## Complexity Tracking
+## 복잡도 추적
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> **헌법 체크에 정당화가 필요한 위반 사항이 있는 경우에만 작성하세요**
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| *None*      | -          | -                                   |
+| 위반 사항 | 필요한 이유 | 거부된 더 단순한 대안 |
+|-----------|-------------|-----------------------|
+| *없음*      | -          | -                     |

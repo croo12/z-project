@@ -1,19 +1,14 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.0 → 2.0.0 (Major Revision)
-- Rationale: The constitution has been completely rewritten to reflect the core vision of building a personal, configurable AI development tool.
-- Modified principles: All principles have been replaced.
-  - Principle 1: Principled AI-Assisted Development
-  - Principle 2: Composable Project Specifications
-  - Principle 3: Automated & Verifiable Workflows
-  - Principle 4: Structured & Process-Oriented Task Execution
-- Added sections: None
-- Removed sections: All old principles.
+- Version change: 2.0.0 → 2.1.0 (Minor: New Principle Added)
+- Rationale: Added mandatory language requirement per user request.
+- Modified principles:
+  - Added Principle 5: Korean-First Documentation
+- Added sections: Principle 5
+- Removed sections: None
 - Templates requiring updates:
-  - ⚠ .specify/templates/plan-template.md
-  - ⚠ .specify/templates/spec-template.md
-  - ⚠ .specify/templates/tasks-template.md
-- Follow-up TODOs: None
+  - ⚠ All generation prompts should now explicitly request Korean output.
+- Follow-up TODOs: Ensure all future LLM prompts reference this constitution to enforce Korean output.
 -->
 # z-project Constitution
 
@@ -31,8 +26,11 @@ All development activities, from feature implementation to verification, must be
 ### 4. Structured & Process-Oriented Task Execution
 Achieving production-level quality requires more than simple prompts. The AI must follow a structured, multi-step process for every task. This includes integrating Mission-Critical Prompts (MCPs) and other necessary tools to ensure a rigorous and well-documented development cycle.
 
+### 5. Korean-First Documentation
+All project artifacts, including specifications, plans, task lists, and architectural records, MUST be written in Korean. This ensures seamless understanding and maintenance by the primary developers. English may be used for technical terms or code symbols where standard.
+
 ## Governance
 
 Amendments to this constitution require a documented proposal, review, and an approved migration plan. All pull requests and code reviews must verify compliance with these principles.
 
-**Version**: 2.0.0 | **Ratified**: 2026-01-10 | **Last Amended**: 2026-01-10
+**Version**: 2.1.0 | **Ratified**: 2026-01-10 | **Last Amended**: 2026-01-11
