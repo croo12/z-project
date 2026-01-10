@@ -27,3 +27,4 @@ src-tauri/gen/android/.gradle/
 
 # gemini
 .gemini
+.agent
