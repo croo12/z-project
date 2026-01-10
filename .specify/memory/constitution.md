@@ -2,8 +2,6 @@
 
 ## Core Principles
 
-# Project Constitution
-
 ### 1. Growth-Centric Value
 - **Objective**: All features must strictly contribute to the continuous growth and efficiency of frontend developers.
 - **Outcome**: The platform acts as a curated partner for self-improvement.
@@ -23,3 +21,7 @@
 ### 5. Clear Communication Protocol
 - **Language**: Use **Korean** for Implementation Plans and PR/User communication to ensure precise alignment.
 - **Clarity**: Prioritize clarity in code comments and technical documentation.
+
+### 6. Testing
+- **Rule**: 이건 테스트 용입니다
+
