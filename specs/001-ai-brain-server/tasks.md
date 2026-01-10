@@ -14,11 +14,11 @@
 
 **Purpose**: Project initialization and basic tooling setup for `apps/server`.
 
-- [ ] T001 Initialize a new Node.js project in `apps/server/package.json`.
-- [ ] T002 [P] Add and configure ESLint and Prettier for code quality in `apps/server/`.
-- [ ] T003 [P] Add and configure Vitest for testing in `apps/server/vitest.config.ts`.
-- [ ] T004 [P] Initialize a new Rust library project in `apps/server/rust_components/` for the N-API module.
-- [ ] T005 [P] Add `napi-rs` as a dependency to `apps/server/rust_components/Cargo.toml`.
+- [X] T001 Initialize a new Node.js project in `apps/server/package.json`.
+- [X] T002 [P] Add and configure ESLint and Prettier for code quality in `apps/server/`.
+- [X] T003 [P] Add and configure Vitest for testing in `apps/server/vitest.config.ts`.
+- [X] T004 [P] Initialize a new Rust library project in `apps/server/rust_components/` for the N-API module.
+- [X] T005 [P] Add `napi-rs` as a dependency to `apps/server/rust_components/Cargo.toml`.
 
 ---
 
@@ -26,11 +26,11 @@
 
 **Purpose**: Core infrastructure that MUST be complete before user stories can be implemented.
 
-- [ ] T006 Setup a basic Express.js server in `apps/server/src/index.ts`.
-- [ ] T007 Define core data types (Interaction, Feedback) based on the data model in `apps/server/src/types/index.ts`.
-- [ ] T008 [P] Create a wrapper service for the FAISS vector store in `apps/server/src/lib/vector-store.ts`, responsible for loading and saving the index.
-- [ ] T009 [P] Create the basic structure for the LangGraph graph in `apps/server/src/core/graph.ts`.
-- [ ] T010 Define the N-API interface in `apps/server/rust_components/src/lib.rs` and `apps/server/src/lib/rust-addon.ts` to expose Rust functions to Node.js.
+- [X] T006 Setup a basic Express.js server in `apps/server/src/index.ts`.
+- [X] T007 Define core data types (Interaction, Feedback) based on the data model in `apps/server/src/types/index.ts`.
+- [X] T008 [P] Create a wrapper service for the FAISS vector store in `apps/server/src/lib/vector-store.ts`, responsible for loading and saving the index.
+- [X] T009 [P] Create the basic structure for the LangGraph graph in `apps/server/src/core/graph.ts`.
+- [X] T010 Define the N-API interface in `apps/server/rust_components/src/lib.rs` and `apps/server/src/lib/rust-addon.ts` to expose Rust functions to Node.js.
 
 ---
 
@@ -39,8 +39,8 @@
 **Goal**: Implement the ability to add new information to the knowledge base in real-time.
 **Independent Test**: Send a document to the `/knowledge` endpoint, then verify a subsequent `/query` call can retrieve that information.
 
-- [ ] T011 [US2] Create the API endpoint for knowledge ingestion at `POST /knowledge` in `apps/server/src/api/knowledge.ts`.
-- [ ] T012 [US2] Implement the `IngestionService` in `apps/server/src/services/ingestion.service.ts` to handle text splitting, embedding generation, and adding documents to the FAISS store via the wrapper.
+- [X] T011 [US2] Create the API endpoint for knowledge ingestion at `POST /knowledge` in `apps/server/src/api/knowledge.ts`.
+- [X] T012 [US2] Implement the `IngestionService` in `apps/server/src/services/ingestion.service.ts` to handle text splitting, embedding generation, and adding documents to the FAISS store via the wrapper.
 
 ---
 
@@ -49,9 +49,9 @@
 **Goal**: Implement the ability to log user-AI interactions and receive feedback on them.
 **Independent Test**: Call the `/interactions` endpoint, receive an ID, then call the `/feedback` endpoint with that ID and verify the data is stored.
 
-- [ ] T013 [P] [US1] Create the API endpoint for logging interactions at `POST /interactions` in `apps/server/src/api/interactions.ts`.
-- [ ] T014 [P] [US1] Create the API endpoint for submitting feedback at `POST /feedback` in `apps/server/src/api/feedback.ts`.
-- [ ] T015 [US1] Implement the `FeedbackService` in `apps/server/src/services/feedback.service.ts`. Initially, this service will just store the interaction and feedback data. (Score adjustment logic will be in US3).
+- [X] T013 [P] [US1] Create the API endpoint for logging interactions at `POST /interactions` in `apps/server/src/api/interactions.ts`.
+- [X] T014 [P] [US1] Create the API endpoint for submitting feedback at `POST /feedback` in `apps/server/src/api/feedback.ts`.
+- [X] T015 [US1] Implement the `FeedbackService` in `apps/server/src/services/feedback.service.ts`. Initially, this service will just store the interaction and feedback data. (Score adjustment logic will be in US3).
 
 ---
 
@@ -60,9 +60,10 @@
 **Goal**: Use the stored knowledge and feedback to provide augmented responses to user queries.
 **Independent Test**: With known, unique information in the vector store, call `/query` with a related question and verify the unique information is present in the response.
 
-- [ ] T016 [US3] Implement the core RAG logic within the LangGraph graph in `apps/server/src/core/graph.ts`, including retrieval from FAISS.
-- [ ] T017 [US3] In the `FeedbackService`, add the logic to adjust the `retrieval_score_modifier` in the metadata of `KnowledgeChunk`s based on user feedback. The RAG logic in `T016` should use this score.
-- [ ] T018 [US3] Create the API endpoint for querying at `POST /query` in `apps/server/src/api/query.ts`, which invokes the LangGraph to get a response.
+- [X] T016 [US3] Implement the core RAG logic within the LangGraph graph in `apps/server/src/core/graph.ts`, including retrieval from FAISS.
+- [ ] T017 [US3] In the `FeedbackService`, add the logic to adjust the `retrieval_score_modifier` in the metadata of `KnowledgeChunk`s based on user feedback. The RAG logic in `T016` should use this score. **[BLOCKED]**
+  - **Note**: This task is blocked. The chosen vector store (`langchain/faiss-node`) does not support updating document metadata, which is required to implement the score adjustment feedback loop. The vector store choice needs to be re-evaluated (e.g., switching to ChromaDB or Weaviate) to implement this feature. For now, feedback is stored but not acted upon.
+- [X] T018 [US3] Create the API endpoint for querying at `POST /query` in `apps/server/src/api/query.ts`, which invokes the LangGraph to get a response.
 
 ---
 
@@ -70,10 +71,10 @@
 
 **Purpose**: Improvements that affect the whole service.
 
-- [ ] T019 [P] Implement structured logging (e.g., using Pino or Winston) throughout the application.
-- [ ] T020 [P] Implement environment variable configuration (e.g., using `dotenv`) for settings like server port and database paths.
-- [ ] T021 Create a `Dockerfile` for the `apps/server` to containerize the application for deployment.
-- [ ] T022 Finalize the `quickstart.md` with complete and verified setup and run instructions.
+- [X] T019 [P] Implement structured logging (e.g., using Pino or Winston) throughout the application.
+- [X] T020 [P] Implement environment variable configuration (e.g., using `dotenv`) for settings like server port and database paths.
+- [X] T021 Create a `Dockerfile` for the `apps/server` to containerize the application for deployment.
+- [X] T022 Finalize the `quickstart.md` with complete and verified setup and run instructions.
 
 ---
 

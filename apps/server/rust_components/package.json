@@ -1,0 +1,17 @@
+{
+  "name": "rust_components",
+  "version": "0.0.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "rust-components",
+    "triples": {}
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^3.5.1"
+  },
+  "scripts": {
+    "build": "napi build --release"
+  }
+}

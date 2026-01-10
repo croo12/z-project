@@ -1,0 +1,5 @@
+# Local database
+/db
+
+# Environment variables
+.env
