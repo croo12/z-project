@@ -102,22 +102,27 @@ pub async fn fetch_feed(
             // Tags Logic
             let mut tags = vec![source_category.clone()];
             let title = item.title().unwrap_or("");
-            let text_to_check = format!("{} {}", title, desc_trunc);
+
+            // Optimization: Avoid allocating a new string with format! by checking title and desc separately.
+            // This is safe because all regexes use \b word boundaries or don't span words.
+            let check_keyword = |re: &regex::Regex| -> bool {
+                re.is_match(title) || re.is_match(desc_trunc)
+            };
 
             // Keyword based expansion
-            if re_rust.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Rust) {
+            if check_keyword(re_rust) && !tags.contains(&ArticleCategory::Rust) {
                 tags.push(ArticleCategory::Rust);
             }
-            if re_react.is_match(&text_to_check) && !tags.contains(&ArticleCategory::React) {
+            if check_keyword(re_react) && !tags.contains(&ArticleCategory::React) {
                 tags.push(ArticleCategory::React);
             }
-            if re_android.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Android) {
+            if check_keyword(re_android) && !tags.contains(&ArticleCategory::Android) {
                 tags.push(ArticleCategory::Android);
             }
-            if re_tauri.is_match(&text_to_check) && !tags.contains(&ArticleCategory::Tauri) {
+            if check_keyword(re_tauri) && !tags.contains(&ArticleCategory::Tauri) {
                 tags.push(ArticleCategory::Tauri);
             }
-            if re_ai.is_match(&text_to_check) && !tags.contains(&ArticleCategory::AI) {
+            if check_keyword(re_ai) && !tags.contains(&ArticleCategory::AI) {
                 tags.push(ArticleCategory::AI);
             }
 
