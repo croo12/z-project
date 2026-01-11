@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use crate::error::AppError;
 use crate::features::recommendation::model::{Article, ArticleCategory, Feedback};
 use rusqlite::OptionalExtension;
+use std::collections::HashMap;
 
 pub trait RecommendationRepository: Send + Sync {
     fn get_articles(&self) -> Result<Vec<Article>, AppError>;
@@ -145,9 +146,43 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         let tx = conn.transaction()?;
         let mut new_count = 0;
 
+        // Optimization: Pre-fetch existing tags for all URLs to avoid N+1 SELECTs
+        let urls: Vec<String> = articles.iter().map(|a| a.url.clone()).collect();
+        let mut existing_tags_map: HashMap<String, Vec<ArticleCategory>> = HashMap::new();
+
+        if !urls.is_empty() {
+            // Chunking to avoid SQLite limit (999 vars). 50 is safe.
+            for chunk in urls.chunks(50) {
+                let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+                let sql = format!(
+                    "SELECT url, tags FROM articles WHERE url IN ({})",
+                    placeholders
+                );
+
+                let mut stmt = tx.prepare(&sql)?;
+                let params = rusqlite::params_from_iter(chunk.iter());
+
+                let rows = stmt.query_map(params, |row| {
+                    let url: String = row.get(0)?;
+                    let tags_str: String = row.get(1)?;
+                    // Handle JSON deserialization explicitly to avoid silent failure
+                    let tags: Vec<ArticleCategory> = match serde_json::from_str(&tags_str) {
+                        Ok(t) => t,
+                        Err(e) => {
+                            eprintln!("Failed to deserialize tags for url {}: {}", url, e);
+                            Vec::new()
+                        }
+                    };
+                    Ok((url, tags))
+                })?;
+
+                for (url, tags) in rows.flatten() {
+                    existing_tags_map.insert(url, tags);
+                }
+            }
+        }
+
         {
-            // Prepare statements for reuse
-            let mut stmt_check = tx.prepare_cached("SELECT tags FROM articles WHERE url = ?1")?;
             let mut stmt_insert = tx.prepare_cached(
                 "INSERT INTO articles (id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
@@ -155,21 +190,17 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             )?;
 
             for article in articles {
-                // Check if exists
-                let tags_json: Option<String> = stmt_check
-                    .query_row(rusqlite::params![article.url], |row| row.get(0))
-                    .optional()?;
+                let existing_tags = existing_tags_map.get(&article.url);
 
-                let final_tags = if let Some(tags_str) = tags_json {
+                let final_tags = if let Some(current_tags) = existing_tags {
                     // Merge
-                    let mut current_tags: Vec<ArticleCategory> =
-                        serde_json::from_str(&tags_str).unwrap_or_default();
+                    let mut merged_tags = current_tags.clone();
                     for new_tag in article.tags {
-                        if !current_tags.contains(&new_tag) {
-                            current_tags.push(new_tag);
+                        if !merged_tags.contains(&new_tag) {
+                            merged_tags.push(new_tag);
                         }
                     }
-                    current_tags
+                    merged_tags
                 } else {
                     // New
                     new_count += 1;
