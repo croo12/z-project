@@ -9,9 +9,10 @@ const ARTICLES_FILE = path.join(DATA_DIR, "articles.json");
 class ArticleStoreService {
   private static instance: ArticleStoreService;
   private store: ArticleStore;
+  private isLoaded: boolean = false;
 
   private constructor() {
-    this.store = this.loadStore();
+    this.store = { articles: [] };
   }
 
   public static getInstance(): ArticleStoreService {
@@ -21,19 +22,28 @@ class ArticleStoreService {
     return ArticleStoreService.instance;
   }
 
-  private loadStore(): ArticleStore {
+  public async initialize(): Promise<void> {
+    if (this.isLoaded) return;
+    this.store = await this.loadStore();
+    this.isLoaded = true;
+  }
+
+  private async loadStore(): Promise<ArticleStore> {
     try {
       if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+        await fs.promises.mkdir(DATA_DIR, { recursive: true });
       }
 
       if (!fs.existsSync(ARTICLES_FILE)) {
         const emptyStore: ArticleStore = { articles: [] };
-        fs.writeFileSync(ARTICLES_FILE, JSON.stringify(emptyStore, null, 2));
+        await fs.promises.writeFile(
+          ARTICLES_FILE,
+          JSON.stringify(emptyStore, null, 2)
+        );
         return emptyStore;
       }
 
-      const data = fs.readFileSync(ARTICLES_FILE, "utf-8");
+      const data = await fs.promises.readFile(ARTICLES_FILE, "utf-8");
       return JSON.parse(data) as ArticleStore;
     } catch (error) {
       logger.error(error, "Failed to load article store");
@@ -41,17 +51,20 @@ class ArticleStoreService {
     }
   }
 
-  private saveStore(): void {
+  private async saveStore(): Promise<void> {
     try {
-      fs.writeFileSync(ARTICLES_FILE, JSON.stringify(this.store, null, 2));
+      await fs.promises.writeFile(
+        ARTICLES_FILE,
+        JSON.stringify(this.store, null, 2)
+      );
     } catch (error) {
       logger.error(error, "Failed to save article store");
     }
   }
 
-  public create(article: ArticleMetadata): ArticleMetadata {
+  public async create(article: ArticleMetadata): Promise<ArticleMetadata> {
     this.store.articles.push(article);
-    this.saveStore();
+    await this.saveStore();
     logger.info(`Article created: ${article.id} - ${article.title}`);
     return article;
   }
@@ -72,10 +85,10 @@ class ArticleStoreService {
     };
   }
 
-  public update(
+  public async update(
     id: string,
     updates: Partial<ArticleMetadata>
-  ): ArticleMetadata | undefined {
+  ): Promise<ArticleMetadata | undefined> {
     const index = this.store.articles.findIndex((a) => a.id === id);
     if (index === -1) {
       return undefined;
@@ -86,27 +99,27 @@ class ArticleStoreService {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
-    this.saveStore();
+    await this.saveStore();
     logger.info(`Article updated: ${id}`);
     return this.store.articles[index];
   }
 
-  public delete(id: string): boolean {
+  public async delete(id: string): Promise<boolean> {
     const index = this.store.articles.findIndex((a) => a.id === id);
     if (index === -1) {
       return false;
     }
 
     this.store.articles.splice(index, 1);
-    this.saveStore();
+    await this.saveStore();
     logger.info(`Article deleted: ${id}`);
     return true;
   }
 
-  public updateFeedback(
+  public async updateFeedback(
     id: string,
     type: "positive" | "negative"
-  ): ArticleMetadata | undefined {
+  ): Promise<ArticleMetadata | undefined> {
     const article = this.findById(id);
     if (!article) {
       return undefined;
@@ -129,7 +142,7 @@ class ArticleStoreService {
       article.rating = Math.max(0.0, Math.min(2.0, rawRating));
     }
 
-    return this.update(id, {
+    return await this.update(id, {
       rating: article.rating,
       positiveCount: article.positiveCount,
       negativeCount: article.negativeCount,

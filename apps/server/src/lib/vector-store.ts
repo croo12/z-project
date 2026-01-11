@@ -24,7 +24,6 @@ class VectorStoreService {
       apiKey: process.env.GEMINI_API_KEY,
       modelName: "text-embedding-004", // Updated Gemini embedding model
     });
-    this.init();
   }
 
   public static getInstance(): VectorStoreService {
@@ -32,6 +31,10 @@ class VectorStoreService {
       VectorStoreService.instance = new VectorStoreService();
     }
     return VectorStoreService.instance;
+  }
+
+  public async initialize(): Promise<void> {
+    await this.init();
   }
 
   private async init() {

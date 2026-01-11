@@ -6,6 +6,7 @@ pub enum AppError {
     Database(String),
     Network(String),
     Io(String),
+    Sync(String),
     Unknown(String),
 }
 
@@ -17,6 +18,7 @@ impl fmt::Display for AppError {
             AppError::Database(msg) => write!(f, "Database Error: {}", msg),
             AppError::Network(msg) => write!(f, "Network Error: {}", msg),
             AppError::Io(msg) => write!(f, "I/O Error: {}", msg),
+            AppError::Sync(msg) => write!(f, "Sync Error: {}", msg),
             AppError::Unknown(msg) => write!(f, "Error: {}", msg),
         }
     }

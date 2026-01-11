@@ -5,6 +5,8 @@ import interactionsRouter from "./api/interactions.js";
 import feedbackRouter from "./api/feedback.js";
 import queryRouter from "./api/query.js";
 import articlesRouter from "./api/articles.js";
+import { vectorStoreService } from "./lib/vector-store.js";
+import { articleStoreService } from "./lib/article-store.js";
 import logger from "./lib/logger.js";
 
 // Environment variable validation
@@ -16,6 +18,17 @@ for (const envVar of requiredEnvVars) {
   }
 }
 logger.info("Environment variables validated successfully.");
+
+// Initialize services
+logger.info("Initializing services...");
+await Promise.all([
+  vectorStoreService.initialize(),
+  articleStoreService.initialize(),
+]).catch((e) => {
+  logger.error(e, "Failed to initialize services.");
+  process.exit(1);
+});
+logger.info("Services initialized successfully.");
 
 const app = express();
 const port = process.env.PORT || 3000;

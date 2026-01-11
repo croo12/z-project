@@ -30,9 +30,9 @@ pub async fn sync_article_to_server(
             Ok(())
         }
         Err(e) => {
-            // Log error but don't fail - server sync is optional
+            // Log error but return Err for the frontend to handle if needed
             eprintln!("Failed to sync article to server: {}", e);
-            Ok(())
+            Err(AppError::Sync(e))
         }
     }
 }

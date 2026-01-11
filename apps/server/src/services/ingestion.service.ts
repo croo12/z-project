@@ -37,6 +37,31 @@ export class IngestionService {
       `Successfully ingested ${documents.length} chunks from source: ${source}`
     );
   }
+
+  async ingestWithArticleMetadata(
+    content: string,
+    source: string,
+    articleId: string,
+    articleTitle: string,
+    ingestedAt: string
+  ): Promise<Document[]> {
+    const chunks = await this.textSplitter.splitText(content);
+
+    return chunks.map(
+      (chunk: string) =>
+        new Document({
+          id: crypto.randomUUID(),
+          pageContent: chunk,
+          metadata: {
+            source,
+            articleId,
+            articleTitle,
+            ingested_at: ingestedAt,
+            retrieval_score_modifier: 1.0,
+          },
+        })
+    );
+  }
 }
 
 export const ingestionService = new IngestionService();

@@ -120,9 +120,15 @@ pub async fn submit_feedback(
         } else {
             Some(reason.as_str())
         };
-        let _ = sync_service
+        if let Err(e) = sync_service
             .submit_feedback(&server_article_id, helpful, reason_opt)
-            .await;
+            .await
+        {
+            eprintln!(
+                "Failed to sync feedback to server for article {}: {}",
+                server_article_id, e
+            );
+        }
     }
 
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();

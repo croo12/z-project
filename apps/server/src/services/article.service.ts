@@ -2,6 +2,7 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { Document } from "@langchain/core/documents";
 import { vectorStoreService } from "../lib/vector-store.js";
 import { articleStoreService } from "../lib/article-store.js";
+import { ingestionService } from "./ingestion.service.js";
 import {
   ArticleMetadata,
   CreateArticleInput,
@@ -26,23 +27,13 @@ export class ArticleService {
 
     logger.info(`Creating article: ${input.title}`);
 
-    // Split content into chunks
-    const chunks = await this.textSplitter.splitText(input.content);
-
-    // Create documents with article metadata
-    const documents = chunks.map(
-      (chunk: string) =>
-        new Document({
-          id: crypto.randomUUID(),
-          pageContent: chunk,
-          metadata: {
-            source: input.url,
-            articleId,
-            articleTitle: input.title,
-            ingested_at: now, // Use ISO string instead of Date object
-            retrieval_score_modifier: 1.0,
-          },
-        })
+    // Split content into chunks and create documents
+    const documents = await ingestionService.ingestWithArticleMetadata(
+      input.content,
+      input.url,
+      articleId,
+      input.title,
+      now
     );
 
     // Store in vector DB
@@ -56,14 +47,14 @@ export class ArticleService {
       tags: input.tags || [],
       createdAt: now,
       updatedAt: now,
-      chunkCount: chunks.length,
+      chunkCount: documents.length,
       rating: 1.0,
       positiveCount: 0,
       negativeCount: 0,
     };
 
     // Save to article store
-    return articleStoreService.create(article);
+    return await articleStoreService.create(article);
   }
 
   getArticleById(id: string): ArticleMetadata | undefined {
@@ -83,15 +74,15 @@ export class ArticleService {
     };
   }
 
-  deleteArticle(id: string): boolean {
-    return articleStoreService.delete(id);
+  async deleteArticle(id: string): Promise<boolean> {
+    return await articleStoreService.delete(id);
   }
 
   async submitFeedback(
     articleId: string,
     type: "positive" | "negative"
   ): Promise<ArticleMetadata | undefined> {
-    const article = articleStoreService.updateFeedback(articleId, type);
+    const article = await articleStoreService.updateFeedback(articleId, type);
 
     if (article) {
       // Update vector scores for all chunks of this article

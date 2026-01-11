@@ -68,11 +68,10 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     .map_err(|e| e.to_string())?;
 
     // Migration for existing tables
-    let _ = conn.execute(
-        "ALTER TABLE articles ADD COLUMN server_article_id TEXT NULL",
-        [],
-    );
-    let _ = conn.execute("ALTER TABLE articles ADD COLUMN synced_at TEXT NULL", []);
+    add_column_if_not_exists(&conn, "articles", "server_article_id", "TEXT NULL")
+        .map_err(|e| e.to_string())?;
+    add_column_if_not_exists(&conn, "articles", "synced_at", "TEXT NULL")
+        .map_err(|e| e.to_string())?;
 
     // Optimization: Partial index to speed up fetching candidate articles (unread)
     // Most reads filter for `feedback_helpful IS NULL`.
@@ -83,4 +82,32 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
     .map_err(|e| e.to_string())?;
 
     Ok(pool)
+}
+
+fn add_column_if_not_exists(
+    conn: &rusqlite::Connection,
+    table: &str,
+    column: &str,
+    column_type: &str,
+) -> rusqlite::Result<()> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({})", table))?;
+    let mut rows = stmt.query([])?;
+    let mut exists = false;
+    while let Some(row) = rows.next()? {
+        let name: String = row.get(1)?;
+        if name == column {
+            exists = true;
+            break;
+        }
+    }
+    if !exists {
+        conn.execute(
+            &format!(
+                "ALTER TABLE {} ADD COLUMN {} {}",
+                table, column, column_type
+            ),
+            [],
+        )?;
+    }
+    Ok(())
 }
