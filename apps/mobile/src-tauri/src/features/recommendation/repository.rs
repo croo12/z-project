@@ -35,7 +35,8 @@ impl RecommendationRepository for SqliteRecommendationRepository {
         let conn = self.pool.get()?;
         // Optimization: Filter out articles that already have feedback (Read/Processed)
         // This prevents loading thousands of old articles into memory only to filter them out in Rust.
-        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NULL")?;
+        // Added ORDER BY rowid DESC LIMIT 500 to prioritize recent content (by insertion/discovery time) and cap memory usage.
+        let mut stmt = conn.prepare("SELECT id, title, summary, url, tags, published_at, image_url, author, feedback_helpful, feedback_reason, feedback_at FROM articles WHERE feedback_helpful IS NULL ORDER BY rowid DESC LIMIT 500")?;
 
         let articles_iter = stmt.query_map([], |row| {
             let tags_str: String = row.get(4)?;
