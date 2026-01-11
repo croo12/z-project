@@ -162,7 +162,14 @@ impl RecommendationRepository for SqliteRecommendationRepository {
                 let rows = stmt.query_map(params, |row| {
                     let url: String = row.get(0)?;
                     let tags_str: String = row.get(1)?;
-                    let tags: Vec<ArticleCategory> = serde_json::from_str(&tags_str).unwrap_or_default();
+                    // Handle JSON deserialization explicitly to avoid silent failure
+                    let tags: Vec<ArticleCategory> = match serde_json::from_str(&tags_str) {
+                        Ok(t) => t,
+                        Err(e) => {
+                            eprintln!("Failed to deserialize tags for url {}: {}", url, e);
+                            Vec::new()
+                        }
+                    };
                     Ok((url, tags))
                 })?;
 
