@@ -24,7 +24,7 @@ export interface AIModelConfig {
   /**
    * API 키 (생략 시 환경 변수 사용)
    * OpenAI: OPENAI_API_KEY
-   * Gemini: GOOGLE_API_KEY
+   * Gemini: GEMINI_API_KEY
    */
   apiKey?: string;
 

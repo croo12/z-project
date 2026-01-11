@@ -41,10 +41,16 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install
 
+      - name: Create .env file
+        run: |
+          echo "BRAIN_SERVER_URL=${{ secrets.BRAIN_SERVER_URL }}" > apps/mobile/src-tauri/.env
+        shell: bash
+
       - name: Build Android App
         run: pnpm --filter @z-project/mobile tauri android build --apk true --debug
         env:
           NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          BRAIN_SERVER_URL: ${{ secrets.BRAIN_SERVER_URL }}
 
       - name: Get Version
         id: get_version
