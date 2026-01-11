@@ -1,0 +1,19 @@
+{
+  "articles": [
+    {
+      "id": "c8119c89-00be-447a-83b5-c08e10130f5c",
+      "title": "LangChain Tutorial",
+      "url": "https://example.com/langchain",
+      "tags": [
+        "langchain",
+        "ai"
+      ],
+      "createdAt": "2026-01-11T10:54:02.184Z",
+      "updatedAt": "2026-01-11T10:54:24.406Z",
+      "chunkCount": 1,
+      "rating": 2,
+      "positiveCount": 1,
+      "negativeCount": 0
+    }
+  ]
+}

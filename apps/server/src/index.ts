@@ -45,6 +45,8 @@ app.use("/feedback", feedbackRouter);
 app.use("/query", queryRouter);
 app.use("/articles", articlesRouter);
 
-app.listen(port, () => {
-  logger.info(`Server is listening on port ${port}`);
+const host = "0.0.0.0";
+
+app.listen(Number(port), host, () => {
+  logger.info(`Server is listening on ${host}:${port}`);
 });
