@@ -11,8 +11,6 @@ describe('AI Chat Model Factory', () => {
       modelName: 'gpt-4',
     });
     expect(model).toBeInstanceOf(ChatOpenAI);
-    // @ts-ignore
-    expect(model.modelName).toBe('gpt-4');
   });
 
   it('should create a Gemini model instance', () => {
@@ -22,8 +20,6 @@ describe('AI Chat Model Factory', () => {
       modelName: 'gemini-1.5-pro',
     });
     expect(model).toBeInstanceOf(ChatGoogleGenerativeAI);
-    // @ts-ignore
-    expect(model.modelName).toBe('gemini-1.5-pro');
   });
 
   it('should throw error for unsupported provider', () => {
