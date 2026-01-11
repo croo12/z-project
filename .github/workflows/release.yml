@@ -44,6 +44,7 @@ jobs:
       - name: Create .env file
         run: |
           echo "BRAIN_SERVER_URL=${{ secrets.BRAIN_SERVER_URL }}" > apps/mobile/src-tauri/.env
+          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> apps/mobile/src-tauri/.env
         shell: bash
 
       - name: Build Android App
@@ -51,6 +52,7 @@ jobs:
         env:
           NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
           BRAIN_SERVER_URL: ${{ secrets.BRAIN_SERVER_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Get Version
         id: get_version
