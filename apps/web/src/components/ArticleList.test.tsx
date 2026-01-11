@@ -71,6 +71,7 @@ describe("ArticleList", () => {
         articles={mockArticles}
         onRefresh={() => {}}
         onFeedbackUpdate={() => {}}
+        onSyncArticle={() => {}}
       />
     );
 
