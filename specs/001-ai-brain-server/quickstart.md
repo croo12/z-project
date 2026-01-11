@@ -7,7 +7,7 @@ This guide provides instructions to set up and run the AI Brain Server locally f
 - Node.js (v20 or later)
 - Rust (latest stable toolchain)
 - pnpm (or your preferred package manager)
-- OpenAI API Key (set as an environment variable `OPENAI_API_KEY`)
+- Gemini API Key (set as an environment variable `GEMINI_API_KEY`)
 
 ## Setup
 
@@ -28,10 +28,10 @@ This guide provides instructions to set up and run the AI Brain Server locally f
     ```
 
 4.  **Create `.env` file**:
-    Create a `.env` file in the `apps/server` directory and add your `OPENAI_API_KEY`.
+    Create a `.env` file in the `apps/server` directory and add your `GEMINI_API_KEY`.
     ```
     # apps/server/.env
-    OPENAI_API_KEY=sk-your-openai-api-key
+    GEMINI_API_KEY=your_gemini_api_key_here
     ```
     *(Note: Refer to `apps/server/.env.example` for the format.)*
 

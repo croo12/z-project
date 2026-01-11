@@ -1,0 +1,46 @@
+name: shared-ai-package
+type: library
+version: 1.0.0
+
+types:
+  AIProvider:
+    type: string
+    enum:
+      - openai
+      - gemini
+    description: "Supported AI model providers"
+
+  AIModelConfig:
+    type: object
+    properties:
+      provider:
+        $ref: "#/types/AIProvider"
+        required: true
+      apiKey:
+        type: string
+        description: "API Key (optional if environment variable is set)"
+      modelName:
+        type: string
+        description: "Specific model name (e.g., gpt-4, gemini-pro)"
+      temperature:
+        type: number
+        default: 0.7
+      maxTokens:
+        type: number
+      streaming:
+        type: boolean
+        default: false
+      additionalKwargs:
+        type: object
+        description: "Provider-specific additional arguments"
+
+functions:
+  createChatModel:
+    description: "Factory function to create a LangChain BaseChatModel instance"
+    parameters:
+      - name: config
+        type: AIModelConfig
+        required: true
+    returns:
+      type: BaseChatModel
+      package: "@langchain/core/language_models/chat_models"
