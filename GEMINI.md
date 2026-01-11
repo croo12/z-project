@@ -45,6 +45,7 @@ TypeScript (Node.js v20+), Rust (latest stable): Follow standard conventions
 - 003-korean-docs: Standardized all documentation and templates to Korean. Enforced Korean-first policy.
 - 006-work-with-server: Added article management API, feedback system, PM2 production setup
 - 007-app-server-sync: Implemented article and feedback synchronization between Tauri app and AI Brain Server
+- 008-debug-ui: Added conditional Debug Overlay for monitoring server connection and AI configuration in dev/debug builds
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

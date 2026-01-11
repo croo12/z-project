@@ -25,6 +25,10 @@ use features::worklog::{
 };
 
 use features::sync::{check_server_health, sync_article_to_server};
+
+#[cfg(debug_assertions)]
+use features::debug::commands::test_ai_connection;
+
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -67,7 +71,9 @@ pub fn run() {
             save_user_interests,
             get_user_interests,
             sync_article_to_server,
-            check_server_health
+            check_server_health,
+            #[cfg(debug_assertions)]
+            test_ai_connection
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

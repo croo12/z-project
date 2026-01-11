@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Layout from "./components/Layout";
+import DebugOverlay from "./components/Debug/DebugOverlay";
 import DashboardView from "./views/DashboardView";
 import ArticleView from "./views/ArticleView";
 import { useArticles } from "./hooks/useArticles";
@@ -13,17 +14,20 @@ function App() {
   const { articles, refreshArticles, syncArticle } = useArticles();
 
   return (
-    <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
-      {currentTab === "dashboard" ? (
-        <DashboardView />
-      ) : (
-        <ArticleView
-          articles={articles}
-          onRefresh={refreshArticles}
-          onSyncArticle={syncArticle}
-        />
-      )}
-    </Layout>
+    <>
+      {import.meta.env.DEV && <DebugOverlay />}
+      <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
+        {currentTab === "dashboard" ? (
+          <DashboardView />
+        ) : (
+          <ArticleView
+            articles={articles}
+            onRefresh={refreshArticles}
+            onSyncArticle={syncArticle}
+          />
+        )}
+      </Layout>
+    </>
   );
 }
 
