@@ -59,11 +59,20 @@ pub fn init_db(app_handle: &AppHandle) -> Result<DbPool, String> {
             author TEXT NULL,
             feedback_helpful BOOLEAN NULL,
             feedback_reason TEXT NULL,
-            feedback_at TEXT NULL
+            feedback_at TEXT NULL,
+            server_article_id TEXT NULL,
+            synced_at TEXT NULL
         )",
         [],
     )
     .map_err(|e| e.to_string())?;
+
+    // Migration for existing tables
+    let _ = conn.execute(
+        "ALTER TABLE articles ADD COLUMN server_article_id TEXT NULL",
+        [],
+    );
+    let _ = conn.execute("ALTER TABLE articles ADD COLUMN synced_at TEXT NULL", []);
 
     // Optimization: Partial index to speed up fetching candidate articles (unread)
     // Most reads filter for `feedback_helpful IS NULL`.

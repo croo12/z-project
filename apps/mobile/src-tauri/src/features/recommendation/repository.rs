@@ -18,6 +18,14 @@ pub trait RecommendationRepository: Send + Sync {
         timestamp: &str,
     ) -> Result<(), AppError>;
     fn get_feedback_count(&self) -> Result<i64, AppError>;
+    // Sync-related methods
+    fn is_article_synced(&self, article_id: &str) -> Result<bool, AppError>;
+    fn mark_article_synced(
+        &self,
+        article_id: &str,
+        server_article_id: &str,
+    ) -> Result<(), AppError>;
+    fn get_server_article_id(&self, article_id: &str) -> Result<Option<String>, AppError>;
 }
 
 pub struct SqliteRecommendationRepository {
@@ -253,5 +261,43 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             |row| row.get(0),
         )?;
         Ok(count)
+    }
+
+    fn is_article_synced(&self, article_id: &str) -> Result<bool, AppError> {
+        let conn = self.pool.get()?;
+        let synced: Option<String> = conn
+            .query_row(
+                "SELECT server_article_id FROM articles WHERE id = ?1 AND server_article_id IS NOT NULL",
+                rusqlite::params![article_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(synced.is_some())
+    }
+
+    fn mark_article_synced(
+        &self,
+        article_id: &str,
+        server_article_id: &str,
+    ) -> Result<(), AppError> {
+        let conn = self.pool.get()?;
+        let timestamp = chrono::Local::now().to_rfc3339();
+        conn.execute(
+            "UPDATE articles SET server_article_id = ?1, synced_at = ?2 WHERE id = ?3",
+            rusqlite::params![server_article_id, timestamp, article_id],
+        )?;
+        Ok(())
+    }
+
+    fn get_server_article_id(&self, article_id: &str) -> Result<Option<String>, AppError> {
+        let conn = self.pool.get()?;
+        let server_id: Option<String> = conn
+            .query_row(
+                "SELECT server_article_id FROM articles WHERE id = ?1",
+                rusqlite::params![article_id],
+                |row| row.get(0),
+            )
+            .optional()?;
+        Ok(server_id)
     }
 }

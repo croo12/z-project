@@ -11,12 +11,14 @@ interface Props {
   articles: Article[];
   onRefresh: () => void;
   onFeedbackUpdate: () => void;
+  onSyncArticle: (article: Article) => void;
 }
 
 export default function ArticleList({
   articles,
   onRefresh,
   onFeedbackUpdate,
+  onSyncArticle,
 }: Props) {
   const [filter, setFilter] = useState<ArticleCategory | "All">("All");
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,9 @@ export default function ArticleList({
           onClick={() => setFilter("All")}
           className={cn(
             "px-3 py-1 font-sans font-bold border-2 border-transparent hover:border-foreground rounded-full transition-all",
-            filter === "All" ? "bg-post-it border-foreground shadow-sm rotate-[-1deg]" : "text-foreground/60"
+            filter === "All"
+              ? "bg-post-it border-foreground shadow-sm rotate-[-1deg]"
+              : "text-foreground/60"
           )}
         >
           All
@@ -75,8 +79,10 @@ export default function ArticleList({
             key={cat}
             onClick={() => setFilter(cat)}
             className={cn(
-                "px-3 py-1 font-sans font-bold border-2 border-transparent hover:border-foreground rounded-full transition-all",
-                filter === cat ? "bg-post-it border-foreground shadow-sm rotate-1" : "text-foreground/60"
+              "px-3 py-1 font-sans font-bold border-2 border-transparent hover:border-foreground rounded-full transition-all",
+              filter === cat
+                ? "bg-post-it border-foreground shadow-sm rotate-1"
+                : "text-foreground/60"
             )}
           >
             {cat}
@@ -92,6 +98,7 @@ export default function ArticleList({
             isFeedbacking={feedbackingId === article.id}
             onSetFeedbackingId={setFeedbackingId}
             onSubmitFeedback={handleSubmitFeedback}
+            onSyncArticle={onSyncArticle}
           />
         ))}
         {filtered.length === 0 && (

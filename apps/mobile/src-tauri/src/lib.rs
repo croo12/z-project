@@ -24,6 +24,7 @@ use features::worklog::{
     service::WorkLogState,
 };
 
+use features::sync::{check_server_health, sync_article_to_server};
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -64,7 +65,9 @@ pub fn run() {
             get_recommended_articles,
             submit_feedback,
             save_user_interests,
-            get_user_interests
+            get_user_interests,
+            sync_article_to_server,
+            check_server_health
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

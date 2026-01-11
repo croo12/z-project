@@ -15,10 +15,17 @@ export function useArticles() {
     }
   }, []);
 
+  const syncArticle = useCallback(async (article: Article) => {
+    try {
+      await invoke("sync_article_to_server", { article });
+    } catch (e) {
+      console.error("Failed to sync article to server", e);
+    }
+  }, []);
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     void refreshArticles();
   }, [refreshArticles]);
 
-  return { articles, refreshArticles };
+  return { articles, refreshArticles, syncArticle };
 }
