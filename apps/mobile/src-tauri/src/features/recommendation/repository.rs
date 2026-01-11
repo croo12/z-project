@@ -154,7 +154,10 @@ impl RecommendationRepository for SqliteRecommendationRepository {
             // Chunking to avoid SQLite limit (999 vars). 50 is safe.
             for chunk in urls.chunks(50) {
                 let placeholders = chunk.iter().map(|_| "?").collect::<Vec<_>>().join(",");
-                let sql = format!("SELECT url, tags FROM articles WHERE url IN ({})", placeholders);
+                let sql = format!(
+                    "SELECT url, tags FROM articles WHERE url IN ({})",
+                    placeholders
+                );
 
                 let mut stmt = tx.prepare(&sql)?;
                 let params = rusqlite::params_from_iter(chunk.iter());
