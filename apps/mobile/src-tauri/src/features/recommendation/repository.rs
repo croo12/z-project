@@ -176,10 +176,8 @@ impl RecommendationRepository for SqliteRecommendationRepository {
                     Ok((url, tags))
                 })?;
 
-                for row in rows {
-                    if let Ok((url, tags)) = row {
-                        existing_tags_map.insert(url, tags);
-                    }
+                for (url, tags) in rows.flatten() {
+                    existing_tags_map.insert(url, tags);
                 }
             }
         }
