@@ -27,3 +27,8 @@ src-tauri/gen/android/.gradle/
 
 # gemini
 .gemini
+
+# Server
+apps/server/logs/*.log
+apps/server/data/articles.json
+!apps/server/logs/.gitkeep

@@ -10,14 +10,18 @@ function App() {
   );
 
   // Lifted state to persist data across tab switches
-  const { articles, refreshArticles } = useArticles();
+  const { articles, refreshArticles, syncArticle } = useArticles();
 
   return (
     <Layout currentTab={currentTab} onTabChange={setCurrentTab}>
       {currentTab === "dashboard" ? (
         <DashboardView />
       ) : (
-        <ArticleView articles={articles} onRefresh={refreshArticles} />
+        <ArticleView
+          articles={articles}
+          onRefresh={refreshArticles}
+          onSyncArticle={syncArticle}
+        />
       )}
     </Layout>
   );

@@ -112,6 +112,25 @@ pub async fn submit_feedback(
         .repo
         .update_feedback(&id, helpful, &reason, &timestamp)?;
 
+    // Sync feedback to Brain Server if article was synced
+    if let Ok(Some(server_article_id)) = state.repo.get_server_article_id(&id) {
+        let sync_service = crate::features::sync::service::SyncService::new(state.client.clone());
+        let reason_opt = if reason.is_empty() {
+            None
+        } else {
+            Some(reason.as_str())
+        };
+        if let Err(e) = sync_service
+            .submit_feedback(&server_article_id, helpful, reason_opt)
+            .await
+        {
+            eprintln!(
+                "Failed to sync feedback to server for article {}: {}",
+                server_article_id, e
+            );
+        }
+    }
+
     let api_key = std::env::var("GEMINI_API_KEY").unwrap_or_default();
     if !api_key.is_empty() {
         let count = state.repo.get_feedback_count()?;

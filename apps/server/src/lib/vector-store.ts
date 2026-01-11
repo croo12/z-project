@@ -22,9 +22,8 @@ class VectorStoreService {
     }
     this.embeddings = new GoogleGenerativeAIEmbeddings({
       apiKey: process.env.GEMINI_API_KEY,
-      modelName: "embedding-001", // Standard Gemini embedding model
+      modelName: "text-embedding-004", // Updated Gemini embedding model
     });
-    this.init();
   }
 
   public static getInstance(): VectorStoreService {
@@ -32,6 +31,10 @@ class VectorStoreService {
       VectorStoreService.instance = new VectorStoreService();
     }
     return VectorStoreService.instance;
+  }
+
+  public async initialize(): Promise<void> {
+    await this.init();
   }
 
   private async init() {
@@ -112,6 +115,38 @@ class VectorStoreService {
       logger.info(`Updated score for document ${documentId} to ${newScore}`);
     } catch (error) {
       logger.error(error, `Failed to update score for document ${documentId}`);
+    }
+  }
+
+  /**
+   * Updates the retrieval_score_modifier for all documents belonging to an article.
+   * @param articleId The article ID
+   * @param newScore The new score value
+   */
+  public async updateScoresByArticleId(articleId: string, newScore: number) {
+    if (!this.table) {
+      if (this.db) {
+        const tableNames = await this.db.tableNames();
+        if (tableNames.includes(TABLE_NAME)) {
+          this.table = await this.db.openTable(TABLE_NAME);
+        }
+      }
+    }
+
+    if (!this.table) {
+      logger.warn("LanceDB table not initialized. Cannot update scores.");
+      return;
+    }
+
+    try {
+      // Update all documents with matching articleId
+      await this.table.update({
+        where: `articleId = '${articleId}'`,
+        values: { retrieval_score_modifier: newScore },
+      });
+      logger.info(`Updated scores for article ${articleId} to ${newScore}`);
+    } catch (error) {
+      logger.error(error, `Failed to update scores for article ${articleId}`);
     }
   }
 
