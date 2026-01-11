@@ -1,6 +1,6 @@
 import { LanceDB } from "@langchain/community/vectorstores/lancedb";
 import { VectorStore } from "@langchain/core/vectorstores";
-import { OpenAIEmbeddings } from "@langchain/openai";
+import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { Document } from "@langchain/core/documents";
 import * as lancedb from "@lancedb/lancedb";
 import fs from "fs";
@@ -12,16 +12,17 @@ const TABLE_NAME = "knowledge_store";
 class VectorStoreService {
   private static instance: VectorStoreService;
   private store: LanceDB | null = null;
-  private embeddings: OpenAIEmbeddings;
+  private embeddings: GoogleGenerativeAIEmbeddings;
   private db: lancedb.Connection | null = null;
   private table: lancedb.Table | null = null;
 
   private constructor() {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not set in environment variables.");
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables.");
     }
-    this.embeddings = new OpenAIEmbeddings({
-      openAIApiKey: process.env.OPENAI_API_KEY,
+    this.embeddings = new GoogleGenerativeAIEmbeddings({
+      apiKey: process.env.GEMINI_API_KEY,
+      modelName: "embedding-001", // Standard Gemini embedding model
     });
     this.init();
   }
@@ -41,14 +42,16 @@ class VectorStoreService {
       }
 
       this.db = await lancedb.connect(DB_PATH);
-      
+
       const tableNames = await this.db.tableNames();
       if (tableNames.includes(TABLE_NAME)) {
         this.table = await this.db.openTable(TABLE_NAME);
         this.store = new LanceDB(this.embeddings, { table: this.table });
         logger.info("LanceDB loaded and connected to table.");
       } else {
-        logger.info("LanceDB table does not exist yet. It will be created when documents are added.");
+        logger.info(
+          "LanceDB table does not exist yet. It will be created when documents are added."
+        );
       }
     } catch (error) {
       logger.error(error, "Failed to initialize LanceDB.");
@@ -68,7 +71,7 @@ class VectorStoreService {
         uri: DB_PATH,
         tableName: TABLE_NAME,
       });
-      
+
       // Refresh our references
       this.db = await lancedb.connect(DB_PATH);
       this.table = await this.db.openTable(TABLE_NAME);
@@ -83,13 +86,13 @@ class VectorStoreService {
    */
   public async updateScore(documentId: string, newScore: number) {
     if (!this.table) {
-       // Try to re-init if table was just created
-       if (this.db) {
-           const tableNames = await this.db.tableNames();
-           if (tableNames.includes(TABLE_NAME)) {
-               this.table = await this.db.openTable(TABLE_NAME);
-           }
-       }
+      // Try to re-init if table was just created
+      if (this.db) {
+        const tableNames = await this.db.tableNames();
+        if (tableNames.includes(TABLE_NAME)) {
+          this.table = await this.db.openTable(TABLE_NAME);
+        }
+      }
     }
 
     if (!this.table) {
@@ -99,12 +102,12 @@ class VectorStoreService {
 
     try {
       // LanceDB SQL-like update. we assume 'id' column exists from metadata.
-      // We need to verify if 'id' is in metadata or top level. 
-      // LangChain flattens metadata into columns. 
+      // We need to verify if 'id' is in metadata or top level.
+      // LangChain flattens metadata into columns.
       // So metadata: { id: "123" } -> column "id".
       await this.table.update({
-          where: `id = '${documentId}'`, 
-          values: { retrieval_score_modifier: newScore }
+        where: `id = '${documentId}'`,
+        values: { retrieval_score_modifier: newScore },
       });
       logger.info(`Updated score for document ${documentId} to ${newScore}`);
     } catch (error) {
@@ -122,7 +125,7 @@ class VectorStoreService {
         getRelevantDocuments: async (query: string) => {
           logger.warn("Vector store not initialized, returning no documents.");
           return [];
-        }
+        },
       };
     }
     return (this.store as VectorStore).asRetriever();

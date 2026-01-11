@@ -1,7 +1,11 @@
 import { StateGraph, END } from "@langchain/langgraph";
 import { Document } from "@langchain/core/documents";
 import { vectorStoreService } from "../lib/vector-store.js";
-import { ChatOpenAI } from "@langchain/openai";
+import { createChatModel } from "@z-project/ai";
+import {
+  BaseChatModel,
+  BaseChatModelCallOptions,
+} from "@langchain/core/language_models/chat_models";
 import {
   RunnablePassthrough,
   RunnableSequence,
@@ -9,6 +13,7 @@ import {
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { PromptTemplate } from "@langchain/core/prompts";
 import logger from "../lib/logger.js";
+import { BaseMessageChunk } from "@langchain/core/messages";
 
 // The state of our graph
 export interface AgentState {
@@ -32,10 +37,15 @@ Question:
 
 class RAGGraph {
   private workflow: StateGraph<AgentState>;
-  private llm: ChatOpenAI;
+  private llm: BaseChatModel;
 
   constructor() {
-    this.llm = new ChatOpenAI({ modelName: "gpt-4", temperature: 0 });
+    this.llm = createChatModel({
+      provider: "gemini",
+      modelName: "gemini-2.5-flash",
+      temperature: 0,
+      apiKey: process.env.GEMINI_API_KEY,
+    });
 
     this.workflow = new StateGraph<AgentState>({
       channels: {
